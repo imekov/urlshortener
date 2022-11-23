@@ -14,6 +14,7 @@ import (
 const (
 	filename          = "data.gob"
 	lengthOfShortname = 8
+	host              = "http://localhost:8080/"
 )
 
 func MainHandler(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +58,7 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(shortname))
+		w.Write([]byte(host + shortname))
 
 	default:
 		http.Error(w, "Bad Request", 400)
