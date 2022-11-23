@@ -92,12 +92,12 @@ func ReadData() map[string]string {
 	CheckFileExist()
 
 	dataFile, err := os.Open(filename)
-	defer dataFile.Close()
-
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	defer dataFile.Close()
 
 	dataDecoder := gob.NewDecoder(dataFile)
 	err = dataDecoder.Decode(&data)
@@ -113,12 +113,12 @@ func ReadData() map[string]string {
 func SaveData(d map[string]string) {
 
 	dataFile, err := os.Create(filename)
-	defer dataFile.Close()
-
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	defer dataFile.Close()
 
 	dataEncoder := gob.NewEncoder(dataFile)
 	dataEncoder.Encode(d)
