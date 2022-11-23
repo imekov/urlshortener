@@ -2,13 +2,13 @@ package main
 
 import (
 	"encoding/gob"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 )
 
 const (
@@ -21,8 +21,9 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 
 	case http.MethodGet:
+
 		data := ReadData()
-		shortnameID := r.URL.Query().Get("id")
+		shortnameID := strings.ReplaceAll(r.URL.Path, "/", "")
 
 		if url, ok := data[shortnameID]; ok {
 			w.Header().Set("content-type", "text/plain; charset=utf-8")
@@ -35,8 +36,8 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		var shortname string
 		savedData := ReadData()
-		m := make(map[string]string)
 
+		//проверка на существование сгенерированного имени
 		for {
 			shortname = GenerateShortname(lengthOfShortname)
 			if _, ok := savedData[shortname]; !ok {
@@ -44,34 +45,19 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		bytesBody, err := io.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		defer r.Body.Close()
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
 		}
 
-		if err := json.Unmarshal(bytesBody, &m); err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-
-		for _, v := range m {
-			savedData[shortname] = v
-		}
-
+		savedData[shortname] = string(b)
 		SaveData(savedData)
-
-		subj := map[string]string{"shortURL": shortname}
-		resp, err := json.Marshal(subj)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
 
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		w.Write(resp)
+		w.Write([]byte(shortname))
 
 	default:
 		http.Error(w, "Bad Request", 400)
@@ -96,17 +82,7 @@ func CheckFileExist() {
 	_, err := os.Stat(filename)
 
 	if os.IsNotExist(err) {
-		emptyMap := make(map[string]string)
-		dataFile, err := os.Create(filename)
-		defer dataFile.Close()
-
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		dataEncoder := gob.NewEncoder(dataFile)
-		dataEncoder.Encode(emptyMap)
+		SaveData(map[string]string{})
 	}
 }
 
