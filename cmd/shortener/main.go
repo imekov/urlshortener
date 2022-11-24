@@ -15,8 +15,8 @@ const (
 
 func main() {
 
-	s := storage.Storage{filename}
-	h := handlers.Handler{s, lengthOfShortname, hostname}
+	s := storage.Storage{Filename: filename}
+	h := handlers.Handler{Storage: s, LengthOfShortname: lengthOfShortname, Host: hostname}
 
 	http.HandleFunc("/", h.MainHandler)
 

@@ -42,7 +42,7 @@ func TestHandler_MainHandler(t *testing.T) {
 		},
 	}
 
-	s := storage.Storage{"data.gob"}
+	s := storage.Storage{Filename: "data.gob"}
 	d := Handler{s, 8, "http://localhost:8080/"}
 
 	for _, tt := range tests {
@@ -72,6 +72,9 @@ func TestHandler_MainHandler(t *testing.T) {
 			requestGet := httptest.NewRequest(http.MethodGet, shortURL, nil)
 			h.ServeHTTP(w, requestGet)
 			resultGet := w.Result()
+
+			err := resultGet.Body.Close()
+			require.NoError(t, err)
 
 			assert.Equal(t, tt.wantGet.statusCode, resultGet.StatusCode)
 			assert.Equal(t, tt.wantGet.contentType, resultGet.Header.Get("Content-Type"))
