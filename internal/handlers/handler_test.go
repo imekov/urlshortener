@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vladimirimekov/url-shortener/internal/storage"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -49,7 +52,8 @@ func TestHandler_MainHandler(t *testing.T) {
 		var shortURL string
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(d.MainHandler)
+			h := chi.NewRouter()
+			h.HandleFunc("/", d.MainHandler)
 
 			requestPost := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.urlValue))
 			h.ServeHTTP(w, requestPost)
@@ -66,8 +70,10 @@ func TestHandler_MainHandler(t *testing.T) {
 		})
 
 		t.Run(tt.name, func(t *testing.T) {
+
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(d.MainHandler)
+			h := chi.NewRouter()
+			h.HandleFunc("/{id}", d.MainHandler)
 
 			requestGet := httptest.NewRequest(http.MethodGet, shortURL, nil)
 			h.ServeHTTP(w, requestGet)
@@ -82,4 +88,10 @@ func TestHandler_MainHandler(t *testing.T) {
 		})
 
 	}
+
+	err := os.Remove("data.gob")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 }

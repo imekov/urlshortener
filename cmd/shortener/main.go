@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/vladimirimekov/url-shortener/internal/handlers"
 	"github.com/vladimirimekov/url-shortener/internal/storage"
 	"log"
@@ -18,8 +20,18 @@ func main() {
 	s := storage.Storage{Filename: filename}
 	h := handlers.Handler{Storage: s, LengthOfShortname: lengthOfShortname, Host: hostname}
 
-	http.HandleFunc("/", h.MainHandler)
+	r := chi.NewRouter()
 
-	http.ListenAndServe(":8080", nil)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+
+	r.Route("/{id}", func(r chi.Router) {
+		r.Get("/", h.MainHandler)
+	})
+
+	r.Post("/", h.MainHandler)
+
+	log.Fatal(http.ListenAndServe(":8080", r))
 }

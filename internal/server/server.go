@@ -1,6 +1,8 @@
 package server
 
-import "math/rand"
+import (
+	"math/rand"
+)
 
 func GenerateShortname(length int) string {
 
