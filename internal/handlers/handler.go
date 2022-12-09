@@ -21,7 +21,7 @@ type Handler struct {
 }
 
 type GetData struct {
-	Url string `json:"url"`
+	URL string `json:"url"`
 }
 
 type SendData struct {
@@ -125,18 +125,18 @@ func (h Handler) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//проверка на валидность url
-	_, err = url.ParseRequestURI(g.Url)
+	_, err = url.ParseRequestURI(g.URL)
 	if err != nil {
 		http.Error(w, "Invalid URL value", 400)
 		return
 	}
 
-	shortname := h.getShortname(g.Url)
+	shortname := h.getShortname(g.URL)
 	resultData := SendData{
 		Result: h.Host + shortname,
 	}
 
-	resultJson, err := json.Marshal(resultData)
+	resultJSON, err := json.Marshal(resultData)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -144,7 +144,7 @@ func (h Handler) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write(resultJson)
+	_, err = w.Write(resultJSON)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return

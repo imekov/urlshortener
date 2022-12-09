@@ -101,7 +101,7 @@ func TestHandler_MainHandler(t *testing.T) {
 func TestHandler_ShortenHandler(t *testing.T) {
 
 	type sourceData struct {
-		Url string `json:"url"`
+		URL string `json:"url"`
 	}
 
 	type resultData struct {
@@ -118,17 +118,17 @@ func TestHandler_ShortenHandler(t *testing.T) {
 	}{
 		{
 			name:     "sipmle url",
-			url:      sourceData{Url: "https://google.com"},
+			url:      sourceData{URL: "https://google.com"},
 			wantPost: want{contentType: "application/json", statusCode: http.StatusCreated},
 		},
 		{
 			name:     "long url",
-			url:      sourceData{Url: "https://goiejrgoijergiojposd.com"},
+			url:      sourceData{URL: "https://goiejrgoijergiojposd.com"},
 			wantPost: want{contentType: "application/json", statusCode: http.StatusCreated},
 		},
 		{
 			name:     "long url with slugs",
-			url:      sourceData{Url: "https://rthiiurgfougjfeorferguti.com/thgeufijrgeuhfjwer/gerhuiojgeuh"},
+			url:      sourceData{URL: "https://rthiiurgfougjfeorferguti.com/thgeufijrgeuhfjwer/gerhuiojgeuh"},
 			wantPost: want{contentType: "application/json", statusCode: http.StatusCreated},
 		},
 	}
@@ -142,10 +142,10 @@ func TestHandler_ShortenHandler(t *testing.T) {
 			h := chi.NewRouter()
 			h.HandleFunc("/api/shorten", d.ShortenHandler)
 
-			sendJson, err := json.Marshal(tt.url)
+			sendJSON, err := json.Marshal(tt.url)
 			require.NoError(t, err)
 
-			requestPost := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer(sendJson))
+			requestPost := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer(sendJSON))
 			h.ServeHTTP(w, requestPost)
 			resultPost := w.Result()
 
