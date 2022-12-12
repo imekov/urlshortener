@@ -9,16 +9,19 @@ import (
 	"net/http"
 )
 
-const (
-	filename          = "data.gob"
-	lengthOfShortname = 8
-	hostname          = "http://localhost:8080/"
-)
+type Config struct {
+	SERVER_ADDRESS   string
+	BASE_URL         string
+	FILENAME         string
+	SHORTNAME_LENGTH int
+}
 
 func main() {
 
-	s := storage.Storage{Filename: filename}
-	h := handlers.Handler{Storage: s, LengthOfShortname: lengthOfShortname, Host: hostname}
+	conf := Config{SERVER_ADDRESS: ":8080", BASE_URL: "http://localhost:8080/", FILENAME: "data.gob", SHORTNAME_LENGTH: 8}
+
+	s := storage.Storage{Filename: conf.FILENAME}
+	h := handlers.Handler{Storage: s, LengthOfShortname: conf.SHORTNAME_LENGTH, Host: conf.BASE_URL}
 
 	r := chi.NewRouter()
 
@@ -37,5 +40,5 @@ func main() {
 		r.Post("/", h.ShortenHandler)
 	})
 
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(conf.SERVER_ADDRESS, r))
 }
