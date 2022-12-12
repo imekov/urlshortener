@@ -133,7 +133,7 @@ func (h Handler) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 
 	shortname := h.getShortname(g.URL)
 	resultData := SendData{
-		Result: h.Host + shortname,
+		Result: h.Host + "/" + shortname,
 	}
 
 	resultJSON, err := json.Marshal(resultData)
