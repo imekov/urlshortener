@@ -28,8 +28,6 @@ func main() {
 	cfg.Filename = "data.gob"
 	cfg.ShortnameLength = 8
 
-	//conf := Config{ServerAddress: ":8080", BaseURL: "http://localhost:8080/", Filename: "data.gob", ShortnameLength: 8}
-
 	s := storage.Storage{Filename: cfg.Filename}
 	h := handlers.Handler{Storage: s, LengthOfShortname: cfg.ShortnameLength, Host: cfg.BaseURL}
 
