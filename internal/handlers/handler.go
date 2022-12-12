@@ -91,7 +91,7 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		_, err = w.Write([]byte(h.Host + shortname))
+		_, err = w.Write([]byte(h.Host + "/" + shortname))
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
