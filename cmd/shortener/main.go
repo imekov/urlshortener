@@ -30,7 +30,7 @@ func main() {
 		}
 	} else {
 		cfg.ServerAddress = ":8080"
-		cfg.BaseURL = "http://localhost:8080"
+		cfg.BaseURL = "http://localhost:8080/"
 	}
 
 	cfg.Filename = "data.gob"
