@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/vladimirimekov/url-shortener/internal/handlers"
@@ -10,18 +11,27 @@ import (
 )
 
 type Config struct {
-	SERVER_ADDRESS   string
-	BASE_URL         string
-	FILENAME         string
-	SHORTNAME_LENGTH int
+	ServerAddress   string `env:"SERVER_ADDRESS"`
+	BaseURL         string `env:"BASE_URL"`
+	Filename        string
+	ShortnameLength int
 }
 
 func main() {
 
-	conf := Config{SERVER_ADDRESS: ":8080", BASE_URL: "http://localhost:8080/", FILENAME: "data.gob", SHORTNAME_LENGTH: 8}
+	var cfg Config
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	s := storage.Storage{Filename: conf.FILENAME}
-	h := handlers.Handler{Storage: s, LengthOfShortname: conf.SHORTNAME_LENGTH, Host: conf.BASE_URL}
+	cfg.Filename = "data.gob"
+	cfg.ShortnameLength = 8
+
+	//conf := Config{ServerAddress: ":8080", BaseURL: "http://localhost:8080/", Filename: "data.gob", ShortnameLength: 8}
+
+	s := storage.Storage{Filename: cfg.Filename}
+	h := handlers.Handler{Storage: s, LengthOfShortname: cfg.ShortnameLength, Host: cfg.BaseURL}
 
 	r := chi.NewRouter()
 
@@ -40,5 +50,5 @@ func main() {
 		r.Post("/", h.ShortenHandler)
 	})
 
-	log.Fatal(http.ListenAndServe(conf.SERVER_ADDRESS, r))
+	log.Fatal(http.ListenAndServe(cfg.ServerAddress, r))
 }
