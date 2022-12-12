@@ -8,6 +8,7 @@ import (
 	"github.com/vladimirimekov/url-shortener/internal/storage"
 	"log"
 	"net/http"
+	"os"
 )
 
 type Config struct {
@@ -20,9 +21,16 @@ type Config struct {
 func main() {
 
 	var cfg Config
-	err := env.Parse(&cfg)
-	if err != nil {
-		log.Fatal(err)
+
+	_, ok := os.LookupEnv("SERVER_ADDRESS")
+	if ok {
+		err := env.Parse(&cfg)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		cfg.ServerAddress = ":8080"
+		cfg.BaseURL = "http://localhost:8080"
 	}
 
 	cfg.Filename = "data.gob"
