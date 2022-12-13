@@ -8,13 +8,12 @@ import (
 	"github.com/vladimirimekov/url-shortener/internal/storage"
 	"log"
 	"net/http"
-	"os"
 )
 
 type Config struct {
 	ServerAddress   string `env:"SERVER_ADDRESS"`
 	BaseURL         string `env:"BASE_URL"`
-	Filename        string
+	Filename        string `env:"FILE_STORAGE_PATH"`
 	ShortnameLength int
 }
 
@@ -22,18 +21,21 @@ func main() {
 
 	var cfg Config
 
-	_, ok := os.LookupEnv("SERVER_ADDRESS")
-	if ok {
-		err := env.Parse(&cfg)
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		cfg.ServerAddress = ":8080"
-		cfg.BaseURL = "http://localhost:8080"
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	cfg.Filename = "data.gob"
+	if cfg.ServerAddress == "" {
+		cfg.ServerAddress = ":8080"
+	}
+	if cfg.BaseURL == "" {
+		cfg.BaseURL = "http://localhost:8080"
+	}
+	if cfg.Filename == "" {
+		cfg.Filename = "data.gob"
+	}
+
 	cfg.ShortnameLength = 8
 
 	s := storage.Storage{Filename: cfg.Filename}

@@ -11,7 +11,7 @@ import (
 
 type Repositories interface {
 	ReadData() map[string]string
-	SaveData(map[string]string)
+	SaveData(*map[string]string)
 }
 
 type Handler struct {
@@ -41,7 +41,7 @@ func (h Handler) getShortname(url string) string {
 	}
 
 	savedData[shortname] = url
-	h.Storage.SaveData(savedData)
+	h.Storage.SaveData(&savedData)
 
 	return shortname
 }
