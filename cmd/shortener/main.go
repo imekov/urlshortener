@@ -27,9 +27,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	flag.StringVar(&cfg.ServerAddress, "a", ":8080", "HTTP server start address")
-	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080", "the base address of the resulting shortened URL")
-	flag.StringVar(&cfg.Filename, "f", "data.gob", "path to file with shortened URLs")
+	flag.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "HTTP server start address")
+	flag.StringVar(&cfg.BaseURL, "b", cfg.BaseURL, "the base address of the resulting shortened URL")
+	flag.StringVar(&cfg.Filename, "f", cfg.Filename, "path to file with shortened URLs")
 	flag.Parse()
 
 	cfg.ShortnameLength = 8
