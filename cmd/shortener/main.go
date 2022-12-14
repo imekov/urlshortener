@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -11,9 +12,9 @@ import (
 )
 
 type Config struct {
-	ServerAddress   string `env:"SERVER_ADDRESS"`
-	BaseURL         string `env:"BASE_URL"`
-	Filename        string `env:"FILE_STORAGE_PATH"`
+	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:":8080"`
+	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	Filename        string `env:"FILE_STORAGE_PATH" envDefault:"data.gob"`
 	ShortnameLength int
 }
 
@@ -26,15 +27,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if cfg.ServerAddress == "" {
-		cfg.ServerAddress = ":8080"
-	}
-	if cfg.BaseURL == "" {
-		cfg.BaseURL = "http://localhost:8080"
-	}
-	if cfg.Filename == "" {
-		cfg.Filename = "data.gob"
-	}
+	flag.StringVar(&cfg.ServerAddress, "a", ":8080", "HTTP server start address")
+	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080", "the base address of the resulting shortened URL")
+	flag.StringVar(&cfg.Filename, "f", "data.gob", "path to file with shortened URLs")
+	flag.Parse()
 
 	cfg.ShortnameLength = 8
 
