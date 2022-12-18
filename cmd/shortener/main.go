@@ -4,8 +4,9 @@ import (
 	"flag"
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/vladimirimekov/url-shortener/internal/handlers"
+	"github.com/vladimirimekov/url-shortener/internal/middlewares"
 	"github.com/vladimirimekov/url-shortener/internal/storage"
 	"log"
 	"net/http"
@@ -39,10 +40,12 @@ func main() {
 
 	r := chi.NewRouter()
 
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	r.Use(chiMiddleware.RequestID)
+	r.Use(chiMiddleware.RealIP)
+	r.Use(chiMiddleware.Logger)
+	r.Use(chiMiddleware.Recoverer)
+	r.Use(middlewares.GZIPRead)
+	r.Use(middlewares.GZIPWrite)
 
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", h.MainHandler)
