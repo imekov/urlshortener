@@ -28,7 +28,7 @@ func TestHandler_MainHandler(t *testing.T) {
 		wantGet  want
 	}{
 		{
-			name:     "sipmle url",
+			name:     "simple url",
 			urlValue: "https://google.com",
 			wantPost: want{contentType: "application/json", statusCode: http.StatusCreated},
 			wantGet:  want{contentType: "text/plain; charset=utf-8", statusCode: http.StatusTemporaryRedirect},
@@ -110,6 +110,7 @@ func TestHandler_ShortenHandler(t *testing.T) {
 	type want struct {
 		contentType string
 		statusCode  int
+		err         error
 	}
 	tests := []struct {
 		name     string
@@ -117,19 +118,24 @@ func TestHandler_ShortenHandler(t *testing.T) {
 		wantPost want
 	}{
 		{
-			name:     "sipmle url",
+			name:     "simple url",
 			url:      sourceData{URL: "https://google.com"},
-			wantPost: want{contentType: "application/json", statusCode: http.StatusCreated},
+			wantPost: want{contentType: "application/json", statusCode: http.StatusCreated, err: nil},
 		},
 		{
 			name:     "long url",
 			url:      sourceData{URL: "https://goiejrgoijergiojposd.com"},
-			wantPost: want{contentType: "application/json", statusCode: http.StatusCreated},
+			wantPost: want{contentType: "application/json", statusCode: http.StatusCreated, err: nil},
 		},
 		{
 			name:     "long url with slugs",
 			url:      sourceData{URL: "https://rthiiurgfougjfeorferguti.com/thgeufijrgeuhfjwer/gerhuiojgeuh"},
-			wantPost: want{contentType: "application/json", statusCode: http.StatusCreated},
+			wantPost: want{contentType: "application/json", statusCode: http.StatusCreated, err: nil},
+		},
+		{
+			name:     "int in url",
+			url:      sourceData{URL: "6547898765"},
+			wantPost: want{contentType: "text/plain; charset=utf-8", statusCode: http.StatusBadRequest, err: &json.SyntaxError{}},
 		},
 	}
 
@@ -160,7 +166,7 @@ func TestHandler_ShortenHandler(t *testing.T) {
 			g := resultData{}
 
 			err = json.Unmarshal(b, &g)
-			require.NoError(t, err)
+			assert.IsType(t, tt.wantPost.err, err)
 
 		})
 

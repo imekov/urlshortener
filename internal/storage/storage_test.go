@@ -23,7 +23,7 @@ func TestStorage_WriteReadData(t *testing.T) {
 			s := Storage{
 				Filename: tt.file,
 			}
-			s.SaveData(&tt.want)
+			s.SaveData(tt.want)
 			if got := s.ReadData(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ReadData() = %v, want %v", got, tt.want)
 			}

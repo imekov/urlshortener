@@ -37,7 +37,7 @@ func (s Storage) ReadData() map[string]string {
 	return data
 }
 
-func (s Storage) SaveData(d *map[string]string) {
+func (s Storage) SaveData(d map[string]string) {
 
 	dataFile, err := os.OpenFile(s.Filename, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
