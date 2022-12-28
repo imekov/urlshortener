@@ -16,7 +16,7 @@ func main() {
 	cfg := url_shortener.GetConfig()
 
 	s := storage.Storage{Filename: cfg.Filename}
-	h := handlers.Handler{Storage: s, LengthOfShortname: cfg.ShortnameLength, Host: cfg.BaseURL}
+	h := handlers.Handler{Storage: s, LengthOfShortname: cfg.ShortnameLength, Host: cfg.BaseURL, Salt: cfg.Salt}
 
 	r := chi.NewRouter()
 
@@ -24,13 +24,18 @@ func main() {
 	r.Use(chiMiddleware.RealIP)
 	r.Use(chiMiddleware.Logger)
 	r.Use(chiMiddleware.Recoverer)
+
 	r.Use(middlewares.GZIPRead)
 	r.Use(middlewares.GZIPWrite)
+	r.Use(h.CheckUserCookies)
 
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", h.MainHandler)
 	})
 
+	r.Route("/api/user/urls", func(r chi.Router) {
+		r.Get("/", h.AllShorterURLsHandler)
+	})
 	r.Post("/", h.MainHandler)
 
 	r.Route("/api/shorten", func(r chi.Router) {
