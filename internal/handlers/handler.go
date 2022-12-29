@@ -196,7 +196,7 @@ func (h Handler) AllShorterURLsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for key, value := range userData {
-		result = append(result, AllUserURLs{ShortURL: key, OriginalURL: value})
+		result = append(result, AllUserURLs{ShortURL: h.Host + "/" + key, OriginalURL: value})
 	}
 
 	resultJSON, err := json.Marshal(result)
@@ -206,7 +206,7 @@ func (h Handler) AllShorterURLsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(resultJSON)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
