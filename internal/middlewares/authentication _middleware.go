@@ -21,6 +21,9 @@ func (h UserCookies) CheckUserCookies(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+		type contextKey string
+		const userIDKey contextKey = "userid"
+
 		st, err := r.Cookie("session_token")
 		if err == nil {
 			userID, errDecrypt := server.Decrypt(st.Value, h.Secret)
@@ -28,7 +31,7 @@ func (h UserCookies) CheckUserCookies(next http.Handler) http.Handler {
 			_, ok := savedData[userID]
 
 			if errDecrypt == nil && ok {
-				ctx := context.WithValue(r.Context(), "userid", userID)
+				ctx := context.WithValue(r.Context(), userIDKey, userID)
 				r = r.WithContext(ctx)
 				next.ServeHTTP(w, r)
 				return
@@ -46,7 +49,7 @@ func (h UserCookies) CheckUserCookies(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "userid", sessionToken)
+		ctx := context.WithValue(r.Context(), userIDKey, sessionToken)
 		r = r.WithContext(ctx)
 
 		http.SetCookie(w, &http.Cookie{
