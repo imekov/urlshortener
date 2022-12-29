@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/vladimirimekov/url-shortener/internal/middlewares"
 	"github.com/vladimirimekov/url-shortener/internal/storage"
 	"io"
 	"log"
@@ -49,12 +50,15 @@ func TestHandler_MainHandler(t *testing.T) {
 
 	s := storage.Storage{Filename: "data.gob"}
 	d := Handler{s, 8, "http://localhost:8080"}
+	m := middlewares.UserCookies{Storage: s, Secret: "0Fg79lY0Tq3cdUTMHIcNBvDF0m6QfEZF"}
 
 	for _, tt := range tests {
 		var shortURL string
+		var userID string
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			h := chi.NewRouter()
+			h.Use(m.CheckUserCookies)
 			h.HandleFunc("/", d.MainHandler)
 
 			requestPost := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.urlValue))
@@ -69,15 +73,31 @@ func TestHandler_MainHandler(t *testing.T) {
 			err = resultPost.Body.Close()
 			require.NoError(t, err)
 			shortURL = string(shortname)
+
+			for _, cookie := range resultPost.Cookies() {
+				if cookie.Name == "session_token" {
+					userID = cookie.Value
+				}
+			}
+
 		})
 
 		t.Run(tt.name, func(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			h := chi.NewRouter()
+
+			h.Use(m.CheckUserCookies)
 			h.HandleFunc("/{id}", d.MainHandler)
 
 			requestGet := httptest.NewRequest(http.MethodGet, shortURL, nil)
+
+			requestGet.AddCookie(&http.Cookie{
+				Name:  "session_token",
+				Value: userID,
+				Path:  "/",
+			})
+
 			h.ServeHTTP(w, requestGet)
 			resultGet := w.Result()
 
@@ -141,11 +161,13 @@ func TestHandler_ShortenHandler(t *testing.T) {
 
 	s := storage.Storage{Filename: "data.gob"}
 	d := Handler{s, 8, "http://localhost:8080"}
+	m := middlewares.UserCookies{Storage: s, Secret: "0Fg79lY0Tq3cdUTMHIcNBvDF0m6QfEZF"}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			h := chi.NewRouter()
+			h.Use(m.CheckUserCookies)
 			h.HandleFunc("/api/shorten", d.ShortenHandler)
 
 			sendJSON, err := json.Marshal(tt.url)
