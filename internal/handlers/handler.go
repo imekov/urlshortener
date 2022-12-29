@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"github.com/vladimirimekov/url-shortener/internal/server"
 	"io"
 	"net/http"
@@ -14,15 +13,12 @@ import (
 type Repositories interface {
 	ReadData() map[string]map[string]string
 	SaveData(map[string]map[string]string)
-	Encrypt(string, string) (string, error)
-	Decrypt(string, string) (string, error)
 }
 
 type Handler struct {
 	Storage           Repositories
 	LengthOfShortname int
 	Host              string
-	Salt              string
 }
 
 type GetData struct {
@@ -57,32 +53,13 @@ func (h Handler) getShortname(url string, userID string) string {
 	return shortname
 }
 
-func (h Handler) getUserID(r *http.Request) (result string, err error) {
-	st, err := r.Cookie("session_token")
-	if err != nil {
-		return "", err
-	}
-
-	userID, err := h.Storage.Decrypt(st.Value, h.Salt)
-	if err != nil {
-		return "", err
-	}
-
-	return userID, nil
-
-}
-
 func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 
 	case http.MethodGet:
 
-		userID, err := h.getUserID(r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		userID := r.Context().Value("userid").(string)
 
 		data := h.Storage.ReadData()
 		shortnameID := chi.URLParam(r, "id")
@@ -97,12 +74,7 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodPost:
 
-		userID, err := h.getUserID(r)
-		if err != nil {
-			err401 := errors.New("unauthorized user")
-			http.Error(w, err401.Error(), http.StatusUnauthorized)
-			return
-		}
+		userID := r.Context().Value("userid").(string)
 
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -144,11 +116,7 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h Handler) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 
-	userID, err := h.getUserID(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	userID := r.Context().Value("userid").(string)
 
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -202,16 +170,12 @@ func (h Handler) AllShorterURLsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var result []AllUserURLs
 
-	st, _ := r.Cookie("session_token")
-	userID, err := h.Storage.Decrypt(st.Value, h.Salt)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNoContent)
-		return
-	}
+	userID := r.Context().Value("userid").(string)
 
 	savedData := h.Storage.ReadData()
 	userData := savedData[userID]
 	if len(userData) == 0 {
+		err := errors.New("there are no shortened links")
 		http.Error(w, err.Error(), http.StatusNoContent)
 		return
 	}
@@ -233,44 +197,4 @@ func (h Handler) AllShorterURLsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-}
-
-func (h Handler) CheckUserCookies(next http.Handler) http.Handler {
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		st, err := r.Cookie("session_token")
-		if err == nil {
-			userID, errDecrypt := h.Storage.Decrypt(st.Value, h.Salt)
-
-			savedData := h.Storage.ReadData()
-			_, ok := savedData[userID]
-
-			if errDecrypt == nil && ok {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-		}
-
-		sessionToken := uuid.NewString()
-		savedData := h.Storage.ReadData()
-		savedData[sessionToken] = map[string]string{}
-		h.Storage.SaveData(savedData)
-
-		enc, err := h.Storage.Encrypt(sessionToken, h.Salt)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		http.SetCookie(w, &http.Cookie{
-			Name:  "session_token",
-			Value: enc,
-			Path:  "/",
-		})
-
-		next.ServeHTTP(w, r)
-	})
-
 }
