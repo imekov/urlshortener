@@ -36,13 +36,23 @@ type AllUserURLs struct {
 
 func (h Handler) getShortname(url string, userID string) string {
 	var shortname string
+	var result bool
 
 	savedData := h.Storage.ReadData()
 
 	//проверка на существование сгенерированного имени
 	for {
+		result = true
 		shortname = server.GenerateShortname(h.LengthOfShortname)
-		if _, ok := savedData[userID][shortname]; !ok {
+
+		for _, value := range savedData {
+			if _, ok := value[shortname]; ok {
+				result = false
+				break
+			}
+		}
+
+		if result {
 			break
 		}
 	}
@@ -59,16 +69,21 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodGet:
 
-		userID := r.Context().Value("userid").(string)
+		var originalURL string
 
 		data := h.Storage.ReadData()
 		shortnameID := chi.URLParam(r, "id")
 
-		if originalURL, ok := data[userID][shortnameID]; ok {
-			w.Header().Set("content-type", "text/plain; charset=utf-8")
-			w.Header().Set("Location", originalURL)
-			w.WriteHeader(http.StatusTemporaryRedirect)
-		} else {
+		for _, value := range data {
+			if originalURL, ok := value[shortnameID]; ok {
+				w.Header().Set("content-type", "text/plain; charset=utf-8")
+				w.Header().Set("Location", originalURL)
+				w.WriteHeader(http.StatusTemporaryRedirect)
+				break
+			}
+		}
+
+		if originalURL == "" {
 			http.Error(w, "URL not found", http.StatusNotFound)
 		}
 

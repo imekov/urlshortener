@@ -86,8 +86,8 @@ func TestHandler_MainHandler(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			h := chi.NewRouter()
-
 			h.Use(m.CheckUserCookies)
+
 			h.HandleFunc("/{id}", d.MainHandler)
 
 			requestGet := httptest.NewRequest(http.MethodGet, shortURL, nil)

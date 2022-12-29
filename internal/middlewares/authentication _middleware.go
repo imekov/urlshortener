@@ -46,16 +46,14 @@ func (h UserCookies) CheckUserCookies(next http.Handler) http.Handler {
 			return
 		}
 
-		resultCookie := &http.Cookie{
-			Name:  "session_token",
-			Value: enc,
-			Path:  "/",
-		}
-
 		ctx := context.WithValue(r.Context(), "userid", sessionToken)
 		r = r.WithContext(ctx)
 
-		http.SetCookie(w, resultCookie)
+		http.SetCookie(w, &http.Cookie{
+			Name:  "session_token",
+			Value: enc,
+			Path:  "/",
+		})
 		next.ServeHTTP(w, r)
 	})
 
