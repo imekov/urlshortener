@@ -49,8 +49,8 @@ func TestHandler_MainHandler(t *testing.T) {
 	}
 
 	s := storage.Storage{Filename: "data.gob"}
-	d := Handler{s, 8, "http://localhost:8080"}
-	m := middlewares.UserCookies{Storage: s, Secret: "0Fg79lY0Tq3cdUTMHIcNBvDF0m6QfEZF"}
+	d := Handler{s, 8, "http://localhost:8080", "userid"}
+	m := middlewares.UserCookies{Storage: s, Secret: "0Fg79lY0Tq3cdUTMHIcNBvDF0m6QfEZF", UserIDKey: "userid"}
 
 	for _, tt := range tests {
 		var shortURL string
@@ -160,8 +160,8 @@ func TestHandler_ShortenHandler(t *testing.T) {
 	}
 
 	s := storage.Storage{Filename: "data.gob"}
-	d := Handler{s, 8, "http://localhost:8080"}
-	m := middlewares.UserCookies{Storage: s, Secret: "0Fg79lY0Tq3cdUTMHIcNBvDF0m6QfEZF"}
+	d := Handler{s, 8, "http://localhost:8080", "userid"}
+	m := middlewares.UserCookies{Storage: s, Secret: "0Fg79lY0Tq3cdUTMHIcNBvDF0m6QfEZF", UserIDKey: "userid"}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

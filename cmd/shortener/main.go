@@ -16,8 +16,8 @@ func main() {
 	cfg := url_shortener.GetConfig()
 
 	s := storage.Storage{Filename: cfg.Filename}
-	h := handlers.Handler{Storage: s, LengthOfShortname: cfg.ShortnameLength, Host: cfg.BaseURL}
-	m := middlewares.UserCookies{Storage: s, Secret: cfg.Secret}
+	h := handlers.Handler{Storage: s, LengthOfShortname: cfg.ShortnameLength, Host: cfg.BaseURL, UserIDKey: "userid"}
+	m := middlewares.UserCookies{Storage: s, Secret: cfg.Secret, UserIDKey: "userid"}
 
 	r := chi.NewRouter()
 
