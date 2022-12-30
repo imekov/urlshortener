@@ -15,11 +15,8 @@ type Repositories interface {
 type UserCookies struct {
 	Storage Repositories
 	Secret  string
+	UserKey string
 }
-
-type userIDtype string
-
-const userKey userIDtype = "userid"
 
 func (h UserCookies) CheckUserCookies(next http.Handler) http.Handler {
 
@@ -33,7 +30,7 @@ func (h UserCookies) CheckUserCookies(next http.Handler) http.Handler {
 			_, ok := savedData[userID]
 
 			if errDecrypt == nil && ok {
-				ctx := context.WithValue(r.Context(), userKey, userID)
+				ctx := context.WithValue(r.Context(), h.UserKey, userID)
 				r = r.WithContext(ctx)
 				next.ServeHTTP(w, r)
 				return
@@ -51,7 +48,7 @@ func (h UserCookies) CheckUserCookies(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), userKey, sessionToken)
+		ctx := context.WithValue(r.Context(), h.UserKey, sessionToken)
 		r = r.WithContext(ctx)
 
 		http.SetCookie(w, &http.Cookie{

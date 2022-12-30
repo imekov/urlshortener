@@ -11,13 +11,15 @@ import (
 	"net/http"
 )
 
+const userKey string = "userid"
+
 func main() {
 
-	cfg := url_shortener.GetConfig()
+	cfg := urlshortener.GetConfig()
 
 	s := storage.Storage{Filename: cfg.Filename}
-	h := handlers.Handler{Storage: s, LengthOfShortname: cfg.ShortnameLength, Host: cfg.BaseURL}
-	m := middlewares.UserCookies{Storage: s, Secret: cfg.Secret}
+	h := handlers.Handler{Storage: s, LengthOfShortname: cfg.ShortnameLength, Host: cfg.BaseURL, UserKey: userKey}
+	m := middlewares.UserCookies{Storage: s, Secret: cfg.Secret, UserKey: userKey}
 
 	r := chi.NewRouter()
 

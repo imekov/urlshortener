@@ -19,6 +19,7 @@ type Handler struct {
 	Storage           Repositories
 	LengthOfShortname int
 	Host              string
+	UserKey           string
 }
 
 type GetData struct {
@@ -89,7 +90,7 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodPost:
 
-		userID := r.Context().Value("userid").(string)
+		userID := r.Context().Value(h.UserKey).(string)
 
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -131,7 +132,7 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h Handler) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 
-	userID := r.Context().Value("userid").(string)
+	userID := r.Context().Value(h.UserKey).(string)
 
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -185,7 +186,7 @@ func (h Handler) AllShorterURLsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var result []AllUserURLs
 
-	userID := r.Context().Value("userid").(string)
+	userID := r.Context().Value(h.UserKey).(string)
 
 	savedData := h.Storage.ReadData()
 	userData := savedData[userID]
