@@ -15,7 +15,7 @@ type Repositories interface {
 type UserCookies struct {
 	Storage Repositories
 	Secret  string
-	UserKey string
+	UserKey interface{}
 }
 
 func (h UserCookies) CheckUserCookies(next http.Handler) http.Handler {

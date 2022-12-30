@@ -11,7 +11,9 @@ import (
 	"net/http"
 )
 
-const userKey string = "userid"
+type userIDtype string
+
+const userKey userIDtype = "userid"
 
 func main() {
 

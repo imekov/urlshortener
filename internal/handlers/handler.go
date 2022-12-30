@@ -19,7 +19,7 @@ type Handler struct {
 	Storage           Repositories
 	LengthOfShortname int
 	Host              string
-	UserKey           string
+	UserKey           interface{}
 }
 
 type GetData struct {
