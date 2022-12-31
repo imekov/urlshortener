@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vladimirimekov/url-shortener/internal/middlewares"
+	"github.com/vladimirimekov/url-shortener/internal/server"
 	"github.com/vladimirimekov/url-shortener/internal/storage"
 	"io"
 	"log"
@@ -50,8 +51,11 @@ func TestHandler_MainHandler(t *testing.T) {
 		},
 	}
 
+	dbConnection := server.Connect("db.db")
+	defer dbConnection.Close()
+
 	s := storage.Storage{Filename: "data.gob"}
-	d := Handler{s, 8, "http://localhost:8080", userKey}
+	d := Handler{s, 8, "http://localhost:8080", userKey, dbConnection}
 	m := middlewares.UserCookies{Storage: s, Secret: "0Fg79lY0Tq3cdUTMHIcNBvDF0m6QfEZF", UserKey: userKey}
 
 	for _, tt := range tests {
@@ -161,8 +165,11 @@ func TestHandler_ShortenHandler(t *testing.T) {
 		},
 	}
 
+	dbConnection := server.Connect("db.db")
+	defer dbConnection.Close()
+
 	s := storage.Storage{Filename: "data.gob"}
-	d := Handler{s, 8, "http://localhost:8080", userKey}
+	d := Handler{s, 8, "http://localhost:8080", userKey, dbConnection}
 	m := middlewares.UserCookies{Storage: s, Secret: "0Fg79lY0Tq3cdUTMHIcNBvDF0m6QfEZF", UserKey: userKey}
 
 	for _, tt := range tests {
