@@ -6,6 +6,7 @@ import (
 	"github.com/vladimirimekov/url-shortener"
 	"github.com/vladimirimekov/url-shortener/internal/handlers"
 	"github.com/vladimirimekov/url-shortener/internal/middlewares"
+	"github.com/vladimirimekov/url-shortener/internal/server"
 	"github.com/vladimirimekov/url-shortener/internal/storage"
 	"log"
 	"net/http"
@@ -18,9 +19,18 @@ const userKey userIDtype = "userid"
 func main() {
 
 	cfg := urlshortener.GetConfig()
+	dbConnection := server.Connect(cfg.DBAddress)
+	defer dbConnection.Close()
 
 	s := storage.Storage{Filename: cfg.Filename}
-	h := handlers.Handler{Storage: s, LengthOfShortname: cfg.ShortnameLength, Host: cfg.BaseURL, UserKey: userKey}
+
+	h := handlers.Handler{
+		Storage:           s,
+		LengthOfShortname: cfg.ShortnameLength,
+		Host:              cfg.BaseURL,
+		UserKey:           userKey,
+		DBConnection:      dbConnection}
+
 	m := middlewares.UserCookies{Storage: s, Secret: cfg.Secret, UserKey: userKey}
 
 	r := chi.NewRouter()
@@ -38,13 +48,18 @@ func main() {
 		r.Get("/", h.MainHandler)
 	})
 
-	r.Route("/api/user/urls", func(r chi.Router) {
-		r.Get("/", h.AllShorterURLsHandler)
-	})
 	r.Post("/", h.MainHandler)
 
 	r.Route("/api/shorten", func(r chi.Router) {
 		r.Post("/", h.ShortenHandler)
+	})
+
+	r.Route("/api/user/urls", func(r chi.Router) {
+		r.Get("/", h.AllShorterURLsHandler)
+	})
+
+	r.Route("/ping", func(r chi.Router) {
+		r.Get("/", h.PingDBConnection)
 	})
 
 	log.Fatal(http.ListenAndServe(cfg.ServerAddress, r))

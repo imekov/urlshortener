@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"github.com/go-chi/chi/v5"
@@ -8,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 type Repositories interface {
@@ -20,6 +23,7 @@ type Handler struct {
 	LengthOfShortname int
 	Host              string
 	UserKey           interface{}
+	DBConnection      *sql.DB
 }
 
 type GetData struct {
@@ -213,4 +217,18 @@ func (h Handler) AllShorterURLsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func (h Handler) PingDBConnection(w http.ResponseWriter, r *http.Request) {
+
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	if err := h.DBConnection.PingContext(ctx); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
