@@ -2,11 +2,20 @@ package server
 
 import (
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
+	"fmt"
+	_ "github.com/lib/pq"
+)
+
+const (
+	port     = 5432
+	user     = "postgres"
+	password = "12345678"
+	dbname   = "study_db"
 )
 
 func Connect(DBAddress string) *sql.DB {
-	db, err := sql.Open("sqlite3", DBAddress)
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", DBAddress, port, user, password, dbname)
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		panic(err)
 	}
