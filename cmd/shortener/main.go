@@ -1,12 +1,12 @@
 package main
 
 import (
+	"database/sql"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/vladimirimekov/url-shortener"
 	"github.com/vladimirimekov/url-shortener/internal/handlers"
 	"github.com/vladimirimekov/url-shortener/internal/middlewares"
-	"github.com/vladimirimekov/url-shortener/internal/server"
 	"github.com/vladimirimekov/url-shortener/internal/storage"
 	"log"
 	"net/http"
@@ -19,7 +19,10 @@ const userKey userIDtype = "userid"
 func main() {
 
 	cfg := urlshortener.GetConfig()
-	dbConnection := server.Connect(cfg.DBAddress)
+	dbConnection, err := sql.Open("postgres", cfg.DBAddress)
+	if err != nil {
+		panic(err)
+	}
 	defer dbConnection.Close()
 
 	s := storage.Storage{Filename: cfg.Filename}
