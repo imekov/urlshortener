@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	urlshortener "github.com/vladimirimekov/url-shortener"
 	"github.com/vladimirimekov/url-shortener/internal/middlewares"
 	"github.com/vladimirimekov/url-shortener/internal/server"
 	"github.com/vladimirimekov/url-shortener/internal/storage"
@@ -19,8 +20,14 @@ import (
 )
 
 const userKey string = "userid"
+const secretKey string = "0Fg79lY0Tq3cdUTMHIcNBvDF0m6QfEZF"
+
+var cfg urlshortener.Config
 
 func TestHandler_MainHandler(t *testing.T) {
+
+	cfg = urlshortener.GetConfig()
+
 	type want struct {
 		contentType string
 		statusCode  int
@@ -51,12 +58,18 @@ func TestHandler_MainHandler(t *testing.T) {
 		},
 	}
 
-	dbConnection := server.Connect("db.db")
+	dbConnection := server.Connect(cfg.DBAddress)
 	defer dbConnection.Close()
 
-	s := storage.Storage{Filename: "data.gob"}
-	d := Handler{s, 8, "http://localhost:8080", userKey, dbConnection}
-	m := middlewares.UserCookies{Storage: s, Secret: "0Fg79lY0Tq3cdUTMHIcNBvDF0m6QfEZF", UserKey: userKey}
+	s := storage.Storage{Filename: cfg.Filename}
+	d := Handler{
+		Storage:           s,
+		LengthOfShortname: cfg.ShortnameLength,
+		Host:              cfg.BaseURL,
+		UserKey:           userKey,
+		DBConnection:      dbConnection}
+
+	m := middlewares.UserCookies{Storage: s, Secret: secretKey, UserKey: userKey}
 
 	for _, tt := range tests {
 		var shortURL string
@@ -165,12 +178,18 @@ func TestHandler_ShortenHandler(t *testing.T) {
 		},
 	}
 
-	dbConnection := server.Connect("db.db")
+	dbConnection := server.Connect(cfg.DBAddress)
 	defer dbConnection.Close()
 
-	s := storage.Storage{Filename: "data.gob"}
-	d := Handler{s, 8, "http://localhost:8080", userKey, dbConnection}
-	m := middlewares.UserCookies{Storage: s, Secret: "0Fg79lY0Tq3cdUTMHIcNBvDF0m6QfEZF", UserKey: userKey}
+	s := storage.Storage{Filename: cfg.Filename}
+	d := Handler{
+		Storage:           s,
+		LengthOfShortname: cfg.ShortnameLength,
+		Host:              cfg.BaseURL,
+		UserKey:           userKey,
+		DBConnection:      dbConnection}
+
+	m := middlewares.UserCookies{Storage: s, Secret: secretKey, UserKey: userKey}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
