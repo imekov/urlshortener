@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	_ "github.com/lib/pq"
 	"github.com/vladimirimekov/url-shortener"
 	"github.com/vladimirimekov/url-shortener/internal/handlers"
 	"github.com/vladimirimekov/url-shortener/internal/middlewares"

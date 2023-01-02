@@ -2,13 +2,14 @@ package handlers
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	urlshortener "github.com/vladimirimekov/url-shortener"
 	"github.com/vladimirimekov/url-shortener/internal/middlewares"
-	"github.com/vladimirimekov/url-shortener/internal/server"
 	"github.com/vladimirimekov/url-shortener/internal/storage"
 	"io"
 	"log"
@@ -58,7 +59,10 @@ func TestHandler_MainHandler(t *testing.T) {
 		},
 	}
 
-	dbConnection := server.Connect(cfg.DBAddress)
+	dbConnection, err := sql.Open("postgres", cfg.DBAddress)
+	if err != nil {
+		panic(err)
+	}
 	defer dbConnection.Close()
 
 	s := storage.Storage{Filename: cfg.Filename}
@@ -130,7 +134,7 @@ func TestHandler_MainHandler(t *testing.T) {
 
 	}
 
-	err := os.Remove("data.gob")
+	err = os.Remove("data.gob")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -178,7 +182,10 @@ func TestHandler_ShortenHandler(t *testing.T) {
 		},
 	}
 
-	dbConnection := server.Connect(cfg.DBAddress)
+	dbConnection, err := sql.Open("postgres", cfg.DBAddress)
+	if err != nil {
+		panic(err)
+	}
 	defer dbConnection.Close()
 
 	s := storage.Storage{Filename: cfg.Filename}
@@ -222,7 +229,7 @@ func TestHandler_ShortenHandler(t *testing.T) {
 
 	}
 
-	err := os.Remove("data.gob")
+	err = os.Remove("data.gob")
 	if err != nil {
 		log.Fatal(err)
 	}
