@@ -11,7 +11,7 @@ type Config struct {
 	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 	Filename        string `env:"FILE_STORAGE_PATH" envDefault:"data.gob"`
 	Secret          string `env:"SECRET_KEY" envDefault:"y3T8h2wYJGlgzLmWjjflfcUW0NYBeEJ6"`
-	DBAddress       string `env:"DATABASE_DSN" envDefault:"localhost"`
+	DBAddress       string `env:"DATABASE_DSN" envDefault:"localhost:5432"`
 	ShortnameLength int    `env:"SHORTNAME_LENGTH" envDefault:"8"`
 }
 

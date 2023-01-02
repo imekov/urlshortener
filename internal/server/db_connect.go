@@ -4,17 +4,22 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
+	"net"
 )
 
 const (
-	port     = 5432
 	user     = "postgres"
 	password = "12345678"
 	dbname   = "study_db"
 )
 
 func Connect(DBAddress string) *sql.DB {
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", DBAddress, port, user, password, dbname)
+	host, port, err := net.SplitHostPort(DBAddress)
+	if err != nil {
+		panic(err)
+	}
+
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		panic(err)
