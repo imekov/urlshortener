@@ -39,7 +39,7 @@ func main() {
 	} else if cfg.Filename != "" {
 		h.Storage = storage.FileSystemConnect{Filename: cfg.Filename}
 	} else {
-		h.Storage = storage.MemoryWork{State: memoryVar}
+		h.Storage = storage.MemoryWork{UserData: memoryVar}
 	}
 
 	m := middlewares.UserCookies{Storage: h.Storage, Secret: cfg.Secret, UserKey: userKey}

@@ -56,6 +56,11 @@ func (s PostgreConnect) ReadData() map[string]map[string]string {
 		data[v] = map[string]string{}
 	}
 
+	err = rows.Err()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	sqlStatement := `
 	SELECT 
     	users.user_Cookie,
