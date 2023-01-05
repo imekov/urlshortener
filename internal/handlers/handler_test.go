@@ -65,6 +65,10 @@ func TestHandler_MainHandler(t *testing.T) {
 	}
 	defer dbConnection.Close()
 
+	if cfg.Filename == "" {
+		cfg.Filename = "data.gob"
+	}
+
 	s := storage.FileSystemConnect{Filename: cfg.Filename}
 	d := Handler{
 		Storage:           s,
