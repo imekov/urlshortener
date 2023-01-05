@@ -7,11 +7,11 @@ import (
 	"os"
 )
 
-type Storage struct {
+type FileSystemConnect struct {
 	Filename string
 }
 
-func (s Storage) ReadData() map[string]map[string]string {
+func (s FileSystemConnect) ReadData() map[string]map[string]string {
 	var data map[string]map[string]string
 
 	dataFile, err := os.OpenFile(s.Filename, os.O_RDONLY|os.O_CREATE, 0777)
@@ -37,7 +37,7 @@ func (s Storage) ReadData() map[string]map[string]string {
 	return data
 }
 
-func (s Storage) SaveData(d map[string]map[string]string) {
+func (s FileSystemConnect) SaveData(d map[string]map[string]string) {
 
 	dataFile, err := os.OpenFile(s.Filename, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {

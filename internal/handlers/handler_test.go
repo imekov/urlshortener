@@ -65,7 +65,7 @@ func TestHandler_MainHandler(t *testing.T) {
 	}
 	defer dbConnection.Close()
 
-	s := storage.Storage{Filename: cfg.Filename}
+	s := storage.FileSystemConnect{Filename: cfg.Filename}
 	d := Handler{
 		Storage:           s,
 		LengthOfShortname: cfg.ShortnameLength,
@@ -188,7 +188,7 @@ func TestHandler_ShortenHandler(t *testing.T) {
 	}
 	defer dbConnection.Close()
 
-	s := storage.Storage{Filename: cfg.Filename}
+	s := storage.FileSystemConnect{Filename: cfg.Filename}
 	d := Handler{
 		Storage:           s,
 		LengthOfShortname: cfg.ShortnameLength,

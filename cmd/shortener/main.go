@@ -20,22 +20,29 @@ const userKey userIDtype = "userid"
 func main() {
 
 	cfg := urlshortener.GetConfig()
+	memoryVar := make(map[string]map[string]string)
+
 	dbConnection, err := sql.Open("postgres", cfg.DBAddress)
 	if err != nil {
-		panic(err)
+		log.Print(err)
 	}
 	defer dbConnection.Close()
 
-	s := storage.Storage{Filename: cfg.Filename}
-
 	h := handlers.Handler{
-		Storage:           s,
 		LengthOfShortname: cfg.ShortnameLength,
 		Host:              cfg.BaseURL,
 		UserKey:           userKey,
 		DBConnection:      dbConnection}
 
-	m := middlewares.UserCookies{Storage: s, Secret: cfg.Secret, UserKey: userKey}
+	if cfg.DBAddress != "" {
+		h.Storage = storage.GetNewConnection(dbConnection)
+	} else if cfg.Filename != "" {
+		h.Storage = storage.FileSystemConnect{Filename: cfg.Filename}
+	} else {
+		h.Storage = storage.MemoryWork{State: memoryVar}
+	}
+
+	m := middlewares.UserCookies{Storage: h.Storage, Secret: cfg.Secret, UserKey: userKey}
 
 	r := chi.NewRouter()
 

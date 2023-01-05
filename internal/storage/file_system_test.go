@@ -20,7 +20,7 @@ func TestStorage_WriteReadData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := Storage{
+			s := FileSystemConnect{
 				Filename: tt.file,
 			}
 			s.SaveData(tt.want)
