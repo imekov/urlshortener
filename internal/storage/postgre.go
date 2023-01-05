@@ -98,7 +98,7 @@ func (s PostgreConnect) ReadData() map[string]map[string]string {
 
 func (s PostgreConnect) SaveData(d map[string]map[string]string) {
 
-	sqlInsertUser := `INSERT INTO users (user_Cookie) VALUES ($1) ON CONFLICT (user_Cookie) DO NOTHING;;`
+	sqlInsertUser := `INSERT INTO users (user_Cookie) VALUES ($1) ON CONFLICT (user_Cookie) DO NOTHING;`
 
 	sqlInsertData := `
 INSERT INTO urls (user_ID, shortURL, originalURL)
