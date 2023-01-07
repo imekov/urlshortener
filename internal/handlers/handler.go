@@ -39,6 +39,16 @@ type AllUserURLs struct {
 	OriginalURL string `json:"original_url"`
 }
 
+type GetBatchData struct {
+	CorrelationId string `json:"correlation_id"`
+	OriginalURL   string `json:"original_url"`
+}
+
+type SendBatchData struct {
+	CorrelationId string `json:"correlation_id"`
+	ShortURL      string `json:"short_url"`
+}
+
 func (h Handler) getShortname(url string, userID string) string {
 	var shortname string
 	var result bool
@@ -230,4 +240,71 @@ func (h Handler) PingDBConnection(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h Handler) ShortenBatchHandler(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(h.UserKey).(string)
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}(r.Body)
+
+	var g []GetBatchData
+	var result []SendBatchData
+
+	if err := json.Unmarshal(b, &g); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	tx, err := h.DBConnection.Begin()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(r.Context(), "INSERT INTO urls (user_ID, shortURL, originalURL) VALUES ((SELECT user_ID from users WHERE user_Cookie=$1), $2, $3)")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	defer stmt.Close()
+
+	for _, v := range g {
+
+		shortname := h.getShortname(v.OriginalURL, userID)
+		result = append(result, SendBatchData{CorrelationId: v.CorrelationId, ShortURL: h.Host + "/" + shortname})
+
+		if _, err = stmt.ExecContext(r.Context(), userID, shortname, v.OriginalURL); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	tx.Commit()
+
+	resultJSON, err := json.Marshal(result)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(resultJSON)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

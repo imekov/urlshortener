@@ -65,6 +65,10 @@ func main() {
 		r.Post("/", h.ShortenHandler)
 	})
 
+	r.Route("/api/shorten/batch", func(r chi.Router) {
+		r.Post("/", h.ShortenBatchHandler)
+	})
+
 	r.Route("/api/user/urls", func(r chi.Router) {
 		r.Get("/", h.AllShorterURLsHandler)
 	})

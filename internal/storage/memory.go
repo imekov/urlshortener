@@ -17,7 +17,7 @@ func (s MemoryWork) SaveData(d map[string]map[string]string) {
 	s.UserData = d
 
 	if s.UserData == nil {
-		log.Fatal("error of write in memory")
+		log.Fatal("memory write error")
 		return
 
 	}
