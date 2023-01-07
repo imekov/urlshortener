@@ -40,12 +40,12 @@ type AllUserURLs struct {
 }
 
 type GetBatchData struct {
-	CorrelationId string `json:"correlation_id"`
+	CorrelationID string `json:"correlation_id"`
 	OriginalURL   string `json:"original_url"`
 }
 
 type SendBatchData struct {
-	CorrelationId string `json:"correlation_id"`
+	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
 }
 
@@ -284,7 +284,7 @@ func (h Handler) ShortenBatchHandler(w http.ResponseWriter, r *http.Request) {
 	for _, v := range g {
 
 		shortname := h.getShortname(v.OriginalURL, userID)
-		result = append(result, SendBatchData{CorrelationId: v.CorrelationId, ShortURL: h.Host + "/" + shortname})
+		result = append(result, SendBatchData{CorrelationID: v.CorrelationID, ShortURL: h.Host + "/" + shortname})
 
 		if _, err = stmt.ExecContext(r.Context(), userID, shortname, v.OriginalURL); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
