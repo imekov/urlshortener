@@ -195,7 +195,37 @@ func (h Handler) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 
 	shortname := h.getShortname()
 
-	h.Storage.SaveData(map[string]map[string]string{userID: {shortname: g.URL}})
+	resultData := map[string]map[string]string{userID: {shortname: g.URL}}
+
+	if err = h.Storage.SaveData(resultData); err != nil {
+		switch e := err.(type) {
+		case *pq.Error:
+			if pgerrcode.IsIntegrityConstraintViolation(string(e.Code)) {
+				w.Header().Set("content-type", "text/plain; charset=utf-8")
+				w.WriteHeader(http.StatusConflict)
+
+				savedData := h.Storage.ReadData()
+
+				for _, value := range savedData {
+					for short, original := range value {
+						if original == g.URL {
+							_, err = w.Write([]byte(h.Host + "/" + short))
+							if err != nil {
+								http.Error(w, err.Error(), http.StatusInternalServerError)
+								return
+							}
+							break
+						}
+					}
+				}
+
+				return
+			}
+		default:
+			http.Error(w, e.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
 
 	resultJSON, err := json.Marshal(map[string]string{"result": h.Host + "/" + shortname})
 
