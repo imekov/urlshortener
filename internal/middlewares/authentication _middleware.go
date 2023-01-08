@@ -9,7 +9,7 @@ import (
 
 type Repositories interface {
 	ReadData() map[string]map[string]string
-	SaveData(map[string]map[string]string)
+	SaveData(map[string]map[string]string) error
 }
 
 type UserCookies struct {
@@ -38,7 +38,7 @@ func (h UserCookies) CheckUserCookies(next http.Handler) http.Handler {
 		}
 
 		sessionToken := uuid.NewString()
-		savedData := h.Storage.ReadData()
+		savedData := make(map[string]map[string]string)
 		savedData[sessionToken] = map[string]string{}
 		h.Storage.SaveData(savedData)
 

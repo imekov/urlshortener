@@ -23,8 +23,8 @@ func GetNewConnection(db *sql.DB) PostgreConnect {
 CREATE TABLE IF NOT EXISTS users (user_ID INT GENERATED ALWAYS AS IDENTITY, user_Cookie VARCHAR(255) NOT NULL UNIQUE, PRIMARY KEY(user_ID)); 
 CREATE TABLE IF NOT EXISTS urls (	
     user_ID INT,
-    shortURL VARCHAR(100), 
-    originalURL VARCHAR(100),
+    shortURL VARCHAR(100) NOT NULL, 
+    originalURL VARCHAR(100) NOT NULL UNIQUE,
     FOREIGN KEY (user_ID) REFERENCES users (user_ID));`
 
 	_, err := dbConn.DBConnect.Exec(sqlStatement)
@@ -40,7 +40,7 @@ func (s PostgreConnect) ReadData() map[string]map[string]string {
 
 	rows, err := s.DBConnect.Query("SELECT user_Cookie FROM users")
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 
 	defer rows.Close()
@@ -50,7 +50,7 @@ func (s PostgreConnect) ReadData() map[string]map[string]string {
 
 		err = rows.Scan(&v)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
 		}
 
 		data[v] = map[string]string{}
@@ -58,7 +58,7 @@ func (s PostgreConnect) ReadData() map[string]map[string]string {
 
 	err = rows.Err()
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 
 	sqlStatement := `
@@ -72,7 +72,7 @@ func (s PostgreConnect) ReadData() map[string]map[string]string {
 
 	rows, err = s.DBConnect.Query(sqlStatement)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 
 	defer rows.Close()
@@ -82,7 +82,7 @@ func (s PostgreConnect) ReadData() map[string]map[string]string {
 
 		err = rows.Scan(&v.UserID, &v.ShortURL, &v.OriginalURL)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
 		}
 
 		data[v.UserID][v.ShortURL] = v.OriginalURL
@@ -90,36 +90,56 @@ func (s PostgreConnect) ReadData() map[string]map[string]string {
 
 	err = rows.Err()
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 
 	return data
 }
 
-func (s PostgreConnect) SaveData(d map[string]map[string]string) {
+func (s PostgreConnect) SaveData(d map[string]map[string]string) error {
 
-	sqlInsertUser := `INSERT INTO users (user_Cookie) VALUES ($1) ON CONFLICT (user_Cookie) DO NOTHING;`
+	tx, err := s.DBConnect.Begin()
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+	defer tx.Rollback()
 
-	sqlInsertData := `
-INSERT INTO urls (user_ID, shortURL, originalURL)
-VALUES ((SELECT user_ID from users WHERE user_Cookie=$1), $2, $3);`
+	sqlInsertUser, err := tx.Prepare("INSERT INTO users (user_Cookie) VALUES ($1) ON CONFLICT (user_Cookie) DO NOTHING;")
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+
+	defer sqlInsertUser.Close()
+
+	sqlInsertData, err := tx.Prepare("INSERT INTO urls (user_ID, shortURL, originalURL) VALUES ((SELECT user_ID from users WHERE user_Cookie=$1), $2, $3);")
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+
+	defer sqlInsertData.Close()
 
 	for userID, values := range d {
 
-		_, err := s.DBConnect.Exec(sqlInsertUser, userID)
+		_, err := sqlInsertUser.Exec(userID)
 		if err != nil {
-			log.Fatal(err)
-			return
+			log.Print(err)
+			return err
 		}
 
 		for shortURL, originalURL := range values {
 
-			_, err := s.DBConnect.Exec(sqlInsertData, userID, shortURL, originalURL)
+			_, err := sqlInsertData.Exec(userID, shortURL, originalURL)
 			if err != nil {
-				log.Fatal(err)
-				return
+				log.Print(err)
+				return err
 			}
 		}
 	}
+
+	tx.Commit()
+	return nil
 
 }

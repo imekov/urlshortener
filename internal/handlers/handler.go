@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgerrcode"
+	"github.com/lib/pq"
 	"github.com/vladimirimekov/url-shortener/internal/server"
 	"io"
 	"net/http"
@@ -15,7 +17,7 @@ import (
 
 type Repositories interface {
 	ReadData() map[string]map[string]string
-	SaveData(map[string]map[string]string)
+	SaveData(map[string]map[string]string) error
 }
 
 type Handler struct {
@@ -30,26 +32,18 @@ type GetData struct {
 	URL string `json:"url"`
 }
 
-type SendData struct {
-	Result string `json:"result"`
-}
-
 type AllUserURLs struct {
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
 
-type GetBatchData struct {
+type BatchData struct {
 	CorrelationID string `json:"correlation_id"`
-	OriginalURL   string `json:"original_url"`
-}
-
-type SendBatchData struct {
-	CorrelationID string `json:"correlation_id"`
+	OriginalURL   string `json:"original_url,omitempty"`
 	ShortURL      string `json:"short_url"`
 }
 
-func (h Handler) getShortname(url string, userID string) string {
+func (h Handler) getShortname() string {
 	var shortname string
 	var result bool
 
@@ -72,9 +66,6 @@ func (h Handler) getShortname(url string, userID string) string {
 		}
 	}
 
-	savedData[userID][shortname] = url
-	h.Storage.SaveData(savedData)
-
 	return shortname
 }
 
@@ -84,23 +75,19 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodGet:
 
-		var originalURL string
-
 		data := h.Storage.ReadData()
-		shortnameID := chi.URLParam(r, "id")
+		shortname := chi.URLParam(r, "id")
 
 		for _, value := range data {
-			if originalURL, ok := value[shortnameID]; ok {
+			if originalURL, ok := value[shortname]; ok {
 				w.Header().Set("content-type", "text/plain; charset=utf-8")
 				w.Header().Set("Location", originalURL)
 				w.WriteHeader(http.StatusTemporaryRedirect)
-				break
+				return
 			}
 		}
 
-		if originalURL == "" {
-			http.Error(w, "URL not found", http.StatusNotFound)
-		}
+		http.Error(w, "URL not found", http.StatusNotFound)
 
 	case http.MethodPost:
 
@@ -128,7 +115,38 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		shortname := h.getShortname(currentURL, userID)
+		shortname := h.getShortname()
+		resultData := map[string]map[string]string{userID: {shortname: currentURL}}
+
+		if err = h.Storage.SaveData(resultData); err != nil {
+			switch e := err.(type) {
+			case *pq.Error:
+				if pgerrcode.IsIntegrityConstraintViolation(string(e.Code)) {
+					w.Header().Set("content-type", "text/plain; charset=utf-8")
+					w.WriteHeader(http.StatusConflict)
+
+					savedData := h.Storage.ReadData()
+
+					for _, value := range savedData {
+						for short, original := range value {
+							if original == currentURL {
+								_, err = w.Write([]byte(h.Host + "/" + short))
+								if err != nil {
+									http.Error(w, err.Error(), http.StatusInternalServerError)
+									return
+								}
+								break
+							}
+						}
+					}
+
+					return
+				}
+			default:
+				http.Error(w, e.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
 
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -175,12 +193,12 @@ func (h Handler) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortname := h.getShortname(g.URL, userID)
-	resultData := SendData{
-		Result: h.Host + "/" + shortname,
-	}
+	shortname := h.getShortname()
 
-	resultJSON, err := json.Marshal(resultData)
+	h.Storage.SaveData(map[string]map[string]string{userID: {shortname: g.URL}})
+
+	resultJSON, err := json.Marshal(map[string]string{"result": h.Host + "/" + shortname})
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -194,6 +212,56 @@ func (h Handler) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+}
+
+func (h Handler) ShortenBatchHandler(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(h.UserKey).(string)
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}(r.Body)
+
+	var g []BatchData
+
+	if err := json.Unmarshal(b, &g); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	dataToSave := make(map[string]map[string]string)
+	dataToSave[userID] = map[string]string{}
+
+	for index, value := range g {
+		shortname := h.getShortname()
+		dataToSave[userID][shortname] = value.OriginalURL
+		g[index].ShortURL = h.Host + "/" + shortname
+		g[index].OriginalURL = ""
+	}
+
+	h.Storage.SaveData(dataToSave)
+
+	resultJSON, err := json.Marshal(g)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(resultJSON)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h Handler) AllShorterURLsHandler(w http.ResponseWriter, r *http.Request) {
@@ -240,71 +308,4 @@ func (h Handler) PingDBConnection(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
-
-func (h Handler) ShortenBatchHandler(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(h.UserKey).(string)
-
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}(r.Body)
-
-	var g []GetBatchData
-	var result []SendBatchData
-
-	if err := json.Unmarshal(b, &g); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	tx, err := h.DBConnection.Begin()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer tx.Rollback()
-
-	stmt, err := tx.PrepareContext(r.Context(), "INSERT INTO urls (user_ID, shortURL, originalURL) VALUES ((SELECT user_ID from users WHERE user_Cookie=$1), $2, $3)")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	defer stmt.Close()
-
-	for _, v := range g {
-
-		shortname := h.getShortname(v.OriginalURL, userID)
-		result = append(result, SendBatchData{CorrelationID: v.CorrelationID, ShortURL: h.Host + "/" + shortname})
-
-		if _, err = stmt.ExecContext(r.Context(), userID, shortname, v.OriginalURL); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-
-	tx.Commit()
-
-	resultJSON, err := json.Marshal(result)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write(resultJSON)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 }

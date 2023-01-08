@@ -140,7 +140,7 @@ func TestHandler_MainHandler(t *testing.T) {
 
 	err = os.Remove("data.gob")
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 
 }
@@ -235,7 +235,7 @@ func TestHandler_ShortenHandler(t *testing.T) {
 
 	err = os.Remove("data.gob")
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 
 }

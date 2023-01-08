@@ -59,18 +59,24 @@ func main() {
 		r.Get("/", h.MainHandler)
 	})
 
-	r.Post("/", h.MainHandler)
-
-	r.Route("/api/shorten", func(r chi.Router) {
-		r.Post("/", h.ShortenHandler)
+	r.Route("/", func(r chi.Router) {
+		r.Post("/", h.MainHandler)
 	})
 
-	r.Route("/api/shorten/batch", func(r chi.Router) {
-		r.Post("/", h.ShortenBatchHandler)
-	})
+	r.Route("/api", func(r chi.Router) {
 
-	r.Route("/api/user/urls", func(r chi.Router) {
-		r.Get("/", h.AllShorterURLsHandler)
+		r.Route("/shorten", func(r chi.Router) {
+			r.Post("/", h.ShortenHandler)
+
+			r.Route("/batch", func(r chi.Router) {
+				r.Post("/", h.ShortenBatchHandler)
+			})
+		})
+
+		r.Route("/user/urls", func(r chi.Router) {
+			r.Get("/", h.AllShorterURLsHandler)
+		})
+
 	})
 
 	r.Route("/ping", func(r chi.Router) {

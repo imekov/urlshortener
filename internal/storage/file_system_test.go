@@ -30,7 +30,7 @@ func TestStorage_WriteReadData(t *testing.T) {
 		})
 		err := os.Remove(tt.file)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
 		}
 	}
 }
