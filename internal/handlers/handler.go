@@ -122,7 +122,7 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 			switch e := err.(type) {
 			case *pq.Error:
 				if pgerrcode.IsIntegrityConstraintViolation(string(e.Code)) {
-					w.Header().Set("content-type", "text/plain; charset=utf-8")
+					w.Header().Set("content-type", "application/json")
 					w.WriteHeader(http.StatusConflict)
 
 					savedData := h.Storage.ReadData()
@@ -201,7 +201,7 @@ func (h Handler) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 		switch e := err.(type) {
 		case *pq.Error:
 			if pgerrcode.IsIntegrityConstraintViolation(string(e.Code)) {
-				w.Header().Set("content-type", "text/plain; charset=utf-8")
+				w.Header().Set("content-type", "application/json")
 				w.WriteHeader(http.StatusConflict)
 
 				savedData := h.Storage.ReadData()
@@ -209,11 +209,20 @@ func (h Handler) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 				for _, value := range savedData {
 					for short, original := range value {
 						if original == g.URL {
-							_, err = w.Write([]byte(h.Host + "/" + short))
+
+							resultJSON, err := json.Marshal(map[string]string{"result": h.Host + "/" + short})
+
 							if err != nil {
 								http.Error(w, err.Error(), http.StatusInternalServerError)
 								return
 							}
+							
+							_, err = w.Write(resultJSON)
+							if err != nil {
+								http.Error(w, err.Error(), http.StatusInternalServerError)
+								return
+							}
+
 							break
 						}
 					}
