@@ -18,6 +18,8 @@ import (
 type Repositories interface {
 	ReadData() map[string]map[string]string
 	SaveData(map[string]map[string]string) error
+	DeleteData([]string, string)
+	GetURLByShortname(string) (string, bool)
 }
 
 type Handler struct {
@@ -75,19 +77,17 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodGet:
 
-		data := h.Storage.ReadData()
 		shortname := chi.URLParam(r, "id")
+		w.Header().Set("content-type", "text/plain; charset=utf-8")
 
-		for _, value := range data {
-			if originalURL, ok := value[shortname]; ok {
-				w.Header().Set("content-type", "text/plain; charset=utf-8")
-				w.Header().Set("Location", originalURL)
-				w.WriteHeader(http.StatusTemporaryRedirect)
-				return
-			}
+		if originalURL, isDelete := h.Storage.GetURLByShortname(shortname); isDelete {
+			w.WriteHeader(http.StatusGone)
+		} else if originalURL == "" {
+			http.Error(w, "URL not found", http.StatusNotFound)
+		} else {
+			w.Header().Set("Location", originalURL)
+			w.WriteHeader(http.StatusTemporaryRedirect)
 		}
-
-		http.Error(w, "URL not found", http.StatusNotFound)
 
 	case http.MethodPost:
 
@@ -162,7 +162,7 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h Handler) ShortenHandler(w http.ResponseWriter, r *http.Request) {
+func (h Handler) PostShortenHandler(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Context().Value(h.UserKey).(string)
 
@@ -216,7 +216,7 @@ func (h Handler) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 								http.Error(w, err.Error(), http.StatusInternalServerError)
 								return
 							}
-							
+
 							_, err = w.Write(resultJSON)
 							if err != nil {
 								http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -253,7 +253,7 @@ func (h Handler) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (h Handler) ShortenBatchHandler(w http.ResponseWriter, r *http.Request) {
+func (h Handler) PostShortenBatchHandler(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(h.UserKey).(string)
 
 	b, err := io.ReadAll(r.Body)
@@ -303,7 +303,7 @@ func (h Handler) ShortenBatchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h Handler) AllShorterURLsHandler(w http.ResponseWriter, r *http.Request) {
+func (h Handler) GetAllShorterURLsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var result []AllUserURLs
 
@@ -334,6 +334,37 @@ func (h Handler) AllShorterURLsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
+
+	userID := r.Context().Value(h.UserKey).(string)
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}(r.Body)
+
+	var g []string
+
+	if err := json.Unmarshal(b, &g); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	go h.Storage.DeleteData(g, userID)
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+
 }
 
 func (h Handler) PingDBConnection(w http.ResponseWriter, r *http.Request) {

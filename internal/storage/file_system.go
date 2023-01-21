@@ -78,3 +78,19 @@ func (s FileSystemConnect) SaveData(d map[string]map[string]string) error {
 	return nil
 
 }
+
+func (s FileSystemConnect) DeleteData([]string, string) {
+}
+
+func (s FileSystemConnect) GetURLByShortname(shortname string) (string, bool) {
+
+	data := s.ReadData()
+
+	for _, value := range data {
+		if originalURL, ok := value[shortname]; ok {
+			return originalURL, false
+		}
+	}
+
+	return "", false
+}

@@ -207,7 +207,7 @@ func TestHandler_ShortenHandler(t *testing.T) {
 			w := httptest.NewRecorder()
 			h := chi.NewRouter()
 			h.Use(m.CheckUserCookies)
-			h.HandleFunc("/api/shorten", d.ShortenHandler)
+			h.HandleFunc("/api/shorten", d.PostShortenHandler)
 
 			sendJSON, err := json.Marshal(tt.url)
 			require.NoError(t, err)

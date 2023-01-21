@@ -24,3 +24,17 @@ func (s MemoryWork) SaveData(d map[string]map[string]string) error {
 	return nil
 
 }
+
+func (s MemoryWork) DeleteData([]string, string) {
+}
+
+func (s MemoryWork) GetURLByShortname(shortname string) (string, bool) {
+
+	for _, value := range s.UserData {
+		if originalURL, ok := value[shortname]; ok {
+			return originalURL, false
+		}
+	}
+
+	return "", false
+}

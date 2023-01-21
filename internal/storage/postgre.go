@@ -2,6 +2,7 @@ package storage
 
 import (
 	"database/sql"
+	"github.com/lib/pq"
 	"log"
 )
 
@@ -25,6 +26,7 @@ CREATE TABLE IF NOT EXISTS urls (
     user_ID INT,
     shortURL VARCHAR(100) NOT NULL, 
     originalURL VARCHAR(100) NOT NULL UNIQUE,
+    isDelete BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (user_ID) REFERENCES users (user_ID));`
 
 	_, err := dbConn.DBConnect.Exec(sqlStatement)
@@ -142,4 +144,49 @@ func (s PostgreConnect) SaveData(d map[string]map[string]string) error {
 	tx.Commit()
 	return nil
 
+}
+
+func (s PostgreConnect) DeleteData(data []string, user string) {
+	tx, err := s.DBConnect.Begin()
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	defer tx.Rollback()
+
+	sqlDeleteURLS, err := tx.Prepare("update urls set isDelete = true from (select unnest($1::text[]) as shortURL) as data_table where urls.shortURL = data_table.shortURL and urls.user_ID = (SELECT user_ID from users WHERE user_Cookie=$2);")
+
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	defer sqlDeleteURLS.Close()
+
+	_, err = sqlDeleteURLS.Exec(pq.Array(data), user)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	tx.Commit()
+}
+
+func (s PostgreConnect) GetURLByShortname(shortname string) (originalURL string, isDelete bool) {
+	tx, err := s.DBConnect.Begin()
+	if err != nil {
+		log.Print(err)
+		return "", false
+	}
+	defer tx.Rollback()
+
+	err = tx.QueryRow("select originalURL, isDelete from urls where urls.shortURL = $1;", shortname).Scan(&originalURL, &isDelete)
+
+	if err != nil {
+		log.Print(err)
+		return "", false
+	}
+
+	tx.Commit()
+	return originalURL, isDelete
 }

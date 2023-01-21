@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"github.com/go-chi/chi/v5"
-	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	_ "github.com/lib/pq"
 	"github.com/vladimirimekov/url-shortener"
 	"github.com/vladimirimekov/url-shortener/internal/handlers"
@@ -44,12 +43,7 @@ func main() {
 
 	m := middlewares.UserCookies{Storage: h.Storage, Secret: cfg.Secret, UserKey: userKey}
 
-	r := chi.NewRouter()
-
-	r.Use(chiMiddleware.RequestID)
-	r.Use(chiMiddleware.RealIP)
-	r.Use(chiMiddleware.Logger)
-	r.Use(chiMiddleware.Recoverer)
+	r := urlshortener.GetChiRouter()
 
 	r.Use(middlewares.GZIPRead)
 	r.Use(middlewares.GZIPWrite)
@@ -66,15 +60,16 @@ func main() {
 	r.Route("/api", func(r chi.Router) {
 
 		r.Route("/shorten", func(r chi.Router) {
-			r.Post("/", h.ShortenHandler)
+			r.Post("/", h.PostShortenHandler)
 
 			r.Route("/batch", func(r chi.Router) {
-				r.Post("/", h.ShortenBatchHandler)
+				r.Post("/", h.PostShortenBatchHandler)
 			})
 		})
 
 		r.Route("/user/urls", func(r chi.Router) {
-			r.Get("/", h.AllShorterURLsHandler)
+			r.Get("/", h.GetAllShorterURLsHandler)
+			r.Delete("/", h.DeleteURLS)
 		})
 
 	})
