@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgerrcode"
 	"github.com/lib/pq"
@@ -89,7 +88,6 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 		} else if originalURL == "" {
 			http.Error(w, "URL not found", http.StatusNotFound)
 		} else {
-			fmt.Println(isDelete)
 			w.Header().Set("Location", originalURL)
 			w.WriteHeader(http.StatusTemporaryRedirect)
 		}

@@ -79,7 +79,20 @@ func (s FileSystemConnect) SaveData(d map[string]map[string]string) error {
 
 }
 
-func (s FileSystemConnect) DeleteData([]string, string) {
+func (s FileSystemConnect) DeleteData(arrayToDelete []string, user string) {
+	data := s.ReadData()
+
+	for _, shortURL := range arrayToDelete {
+		if _, isDelete := s.GetURLByShortname(shortURL); !isDelete {
+			data[user][shortURL] = "-"
+		}
+	}
+
+	err := s.SaveData(data)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 func (s FileSystemConnect) GetURLByShortname(shortname string) (string, bool) {
@@ -88,6 +101,9 @@ func (s FileSystemConnect) GetURLByShortname(shortname string) (string, bool) {
 
 	for _, value := range data {
 		if originalURL, ok := value[shortname]; ok {
+			if originalURL == "-" {
+				return "", true
+			}
 			return originalURL, false
 		}
 	}
