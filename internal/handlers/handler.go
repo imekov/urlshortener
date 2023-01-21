@@ -89,6 +89,7 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 		} else if originalURL == "" {
 			http.Error(w, "URL not found", http.StatusNotFound)
 		} else {
+			fmt.Println(isDelete)
 			w.Header().Set("Location", originalURL)
 			w.WriteHeader(http.StatusTemporaryRedirect)
 		}
@@ -380,8 +381,6 @@ func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	fmt.Println(g)
 
 	inputCh := make(chan string)
 
