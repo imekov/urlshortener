@@ -10,10 +10,13 @@ import (
 	"github.com/lib/pq"
 	"github.com/vladimirimekov/url-shortener/internal/server"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
 )
+
+const workersCount = 5
 
 type Repositories interface {
 	ReadData() map[string]map[string]string
@@ -336,7 +339,24 @@ func (h Handler) GetAllShorterURLsHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+func (h Handler) newDeleteWorker(userID string, input, out chan string) {
+	go func() {
+		var g []string
+
+		for url := range input {
+			g = append(g, url)
+			out <- url
+		}
+
+		h.Storage.DeleteData(g, userID)
+		close(out)
+	}()
+}
+
 func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
 
 	userID := r.Context().Value(h.UserKey).(string)
 
@@ -360,10 +380,27 @@ func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go h.Storage.DeleteData(g, userID)
+	inputCh := make(chan string)
 
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(http.StatusAccepted)
+	go func() {
+		for _, shortURL := range g {
+			inputCh <- shortURL
+		}
+
+		close(inputCh)
+	}()
+
+	fanOutChs := server.FanOut(inputCh, workersCount)
+	workerChs := make([]chan string, 0, workersCount)
+	for _, fanOutCh := range fanOutChs {
+		workerCh := make(chan string)
+		h.newDeleteWorker(userID, fanOutCh, workerCh)
+		workerChs = append(workerChs, workerCh)
+	}
+
+	for v := range server.FanIn(workerChs...) {
+		log.Printf(`Короткая ссылка "%v" была удалена.`, v)
+	}
 
 }
 
