@@ -25,13 +25,22 @@ func (s MemoryWork) SaveData(d map[string]map[string]string) error {
 
 }
 
-func (s MemoryWork) DeleteData([]string, string) {
+func (s MemoryWork) DeleteData(arrayToDelete []string, user string) {
+
+	for _, shortURL := range arrayToDelete {
+		if _, isDelete := s.GetURLByShortname(shortURL); !isDelete {
+			s.UserData[user][shortURL] = "-" + s.UserData[user][shortURL]
+		}
+	}
 }
 
 func (s MemoryWork) GetURLByShortname(shortname string) (string, bool) {
 
 	for _, value := range s.UserData {
 		if originalURL, ok := value[shortname]; ok {
+			if originalURL[0] == '-' {
+				return "", true
+			}
 			return originalURL, false
 		}
 	}
