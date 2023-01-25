@@ -2,10 +2,14 @@ package handlers
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	urlshortener "github.com/vladimirimekov/url-shortener"
+	"github.com/vladimirimekov/url-shortener/internal/middlewares"
 	"github.com/vladimirimekov/url-shortener/internal/storage"
 	"io"
 	"log"
@@ -16,7 +20,15 @@ import (
 	"testing"
 )
 
+const userKey string = "userid"
+const secretKey string = "0Fg79lY0Tq3cdUTMHIcNBvDF0m6QfEZF"
+
+var cfg urlshortener.Config
+
 func TestHandler_MainHandler(t *testing.T) {
+
+	cfg = urlshortener.GetConfig()
+
 	type want struct {
 		contentType string
 		statusCode  int
@@ -47,14 +59,33 @@ func TestHandler_MainHandler(t *testing.T) {
 		},
 	}
 
-	s := storage.Storage{Filename: "data.gob"}
-	d := Handler{s, 8, "http://localhost:8080"}
+	dbConnection, err := sql.Open("postgres", cfg.DBAddress)
+	if err != nil {
+		panic(err)
+	}
+	defer dbConnection.Close()
+
+	if cfg.Filename == "" {
+		cfg.Filename = "data.gob"
+	}
+
+	s := storage.FileSystemConnect{Filename: cfg.Filename}
+	d := Handler{
+		Storage:           s,
+		LengthOfShortname: cfg.ShortnameLength,
+		Host:              cfg.BaseURL,
+		UserKey:           userKey,
+		DBConnection:      dbConnection}
+
+	m := middlewares.UserCookies{Storage: s, Secret: secretKey, UserKey: userKey}
 
 	for _, tt := range tests {
 		var shortURL string
+		var userID string
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			h := chi.NewRouter()
+			h.Use(m.CheckUserCookies)
 			h.HandleFunc("/", d.MainHandler)
 
 			requestPost := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.urlValue))
@@ -69,15 +100,31 @@ func TestHandler_MainHandler(t *testing.T) {
 			err = resultPost.Body.Close()
 			require.NoError(t, err)
 			shortURL = string(shortname)
+
+			for _, cookie := range resultPost.Cookies() {
+				if cookie.Name == "session_token" {
+					userID = cookie.Value
+				}
+			}
+
 		})
 
 		t.Run(tt.name, func(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			h := chi.NewRouter()
+			h.Use(m.CheckUserCookies)
+
 			h.HandleFunc("/{id}", d.MainHandler)
 
 			requestGet := httptest.NewRequest(http.MethodGet, shortURL, nil)
+
+			requestGet.AddCookie(&http.Cookie{
+				Name:  "session_token",
+				Value: userID,
+				Path:  "/",
+			})
+
 			h.ServeHTTP(w, requestGet)
 			resultGet := w.Result()
 
@@ -91,9 +138,9 @@ func TestHandler_MainHandler(t *testing.T) {
 
 	}
 
-	err := os.Remove("data.gob")
+	err = os.Remove("data.gob")
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 
 }
@@ -139,13 +186,27 @@ func TestHandler_ShortenHandler(t *testing.T) {
 		},
 	}
 
-	s := storage.Storage{Filename: "data.gob"}
-	d := Handler{s, 8, "http://localhost:8080"}
+	dbConnection, err := sql.Open("postgres", cfg.DBAddress)
+	if err != nil {
+		panic(err)
+	}
+	defer dbConnection.Close()
+
+	s := storage.FileSystemConnect{Filename: cfg.Filename}
+	d := Handler{
+		Storage:           s,
+		LengthOfShortname: cfg.ShortnameLength,
+		Host:              cfg.BaseURL,
+		UserKey:           userKey,
+		DBConnection:      dbConnection}
+
+	m := middlewares.UserCookies{Storage: s, Secret: secretKey, UserKey: userKey}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			h := chi.NewRouter()
+			h.Use(m.CheckUserCookies)
 			h.HandleFunc("/api/shorten", d.ShortenHandler)
 
 			sendJSON, err := json.Marshal(tt.url)
@@ -172,9 +233,9 @@ func TestHandler_ShortenHandler(t *testing.T) {
 
 	}
 
-	err := os.Remove("data.gob")
+	err = os.Remove("data.gob")
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 
 }
