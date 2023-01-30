@@ -3,8 +3,13 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 	"time"
+
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 
 	"github.com/lib/pq"
 )
@@ -17,6 +22,22 @@ type URLRow struct {
 	UserID      string
 	ShortURL    string
 	OriginalURL string
+}
+
+func GetNewConnection(db *sql.DB, dbConf string) PostgreConnect {
+
+	dbConn := PostgreConnect{DBConnect: db}
+
+	migration, err := migrate.New("file://migrations/postgres", dbConf)
+	if err != nil {
+		log.Print(err)
+	}
+
+	if err = migration.Up(); errors.Is(err, migrate.ErrNoChange) {
+		log.Print(err)
+	}
+
+	return dbConn
 }
 
 func (s PostgreConnect) ReadData() map[string]map[string]string {
