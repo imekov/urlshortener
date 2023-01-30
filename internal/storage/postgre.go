@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/lib/pq"
@@ -174,14 +173,11 @@ func (s PostgreConnect) GetURLByShortname(shortname string) (originalURL string,
 	return originalURL, isDelete
 }
 
-func (s PostgreConnect) PingDBConnection(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
+func (s PostgreConnect) PingDBConnection() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	if err := s.DBConnect.PingContext(ctx); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	err := s.DBConnect.PingContext(ctx)
+	return err
 
-	w.WriteHeader(http.StatusOK)
 }

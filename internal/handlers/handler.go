@@ -21,7 +21,7 @@ type Repositories interface {
 	SaveData(map[string]map[string]string) error
 	DeleteData([]string, string)
 	GetURLByShortname(string) (string, bool)
-	PingDBConnection(w http.ResponseWriter, r *http.Request)
+	PingDBConnection() error
 }
 
 type Handler struct {
@@ -415,5 +415,9 @@ func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) PingDBConnection(w http.ResponseWriter, r *http.Request) {
-	h.PingDBConnection(w, r)
+	if err := h.Storage.PingDBConnection(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
