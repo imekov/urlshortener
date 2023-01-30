@@ -3,7 +3,9 @@ package storage
 import (
 	"bufio"
 	"encoding/gob"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 )
 
@@ -109,4 +111,9 @@ func (s FileSystemConnect) GetURLByShortname(shortname string) (string, bool) {
 	}
 
 	return "", false
+}
+
+func (s FileSystemConnect) PingDBConnection(w http.ResponseWriter, r *http.Request) {
+	err := errors.New("db is not working, current type - work with files")
+	http.Error(w, err.Error(), http.StatusInternalServerError)
 }

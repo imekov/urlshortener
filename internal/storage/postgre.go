@@ -1,9 +1,13 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
-	"github.com/lib/pq"
 	"log"
+	"net/http"
+	"time"
+
+	"github.com/lib/pq"
 )
 
 type PostgreConnect struct {
@@ -14,27 +18,6 @@ type URLRow struct {
 	UserID      string
 	ShortURL    string
 	OriginalURL string
-}
-
-func GetNewConnection(db *sql.DB) PostgreConnect {
-
-	dbConn := PostgreConnect{DBConnect: db}
-
-	sqlStatement := `
-CREATE TABLE IF NOT EXISTS users (user_ID INT GENERATED ALWAYS AS IDENTITY, user_Cookie VARCHAR(255) NOT NULL UNIQUE, PRIMARY KEY(user_ID)); 
-CREATE TABLE IF NOT EXISTS urls (	
-    user_ID INT,
-    shortURL VARCHAR(100) NOT NULL, 
-    originalURL VARCHAR(100) NOT NULL UNIQUE,
-    isDelete BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (user_ID) REFERENCES users (user_ID));`
-
-	_, err := dbConn.DBConnect.Exec(sqlStatement)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return dbConn
 }
 
 func (s PostgreConnect) ReadData() map[string]map[string]string {
@@ -189,4 +172,16 @@ func (s PostgreConnect) GetURLByShortname(shortname string) (originalURL string,
 
 	tx.Commit()
 	return originalURL, isDelete
+}
+
+func (s PostgreConnect) PingDBConnection(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
+	defer cancel()
+
+	if err := s.DBConnect.PingContext(ctx); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

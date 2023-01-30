@@ -1,5 +1,10 @@
 package storage
 
+import (
+	"errors"
+	"net/http"
+)
+
 type MemoryWork struct {
 	UserData map[string]map[string]string
 }
@@ -46,4 +51,9 @@ func (s MemoryWork) GetURLByShortname(shortname string) (string, bool) {
 	}
 
 	return "", false
+}
+
+func (s MemoryWork) PingDBConnection(w http.ResponseWriter, r *http.Request) {
+	err := errors.New("db is not working, current type - work with memory")
+	http.Error(w, err.Error(), http.StatusInternalServerError)
 }

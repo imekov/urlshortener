@@ -1,19 +1,17 @@
 package handlers
 
+import "C"
 import (
-	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgerrcode"
 	"github.com/lib/pq"
-	"github.com/vladimirimekov/url-shortener/internal/server"
 	"io"
-	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
-	"time"
 )
 
 const workersCount = 5
@@ -23,6 +21,7 @@ type Repositories interface {
 	SaveData(map[string]map[string]string) error
 	DeleteData([]string, string)
 	GetURLByShortname(string) (string, bool)
+	PingDBConnection(w http.ResponseWriter, r *http.Request)
 }
 
 type Handler struct {
@@ -30,7 +29,6 @@ type Handler struct {
 	LengthOfShortname int
 	Host              string
 	UserKey           interface{}
-	DBConnection      *sql.DB
 }
 
 type GetData struct {
@@ -57,7 +55,15 @@ func (h Handler) getShortname() string {
 	//проверка на существование сгенерированного имени
 	for {
 		result = true
-		shortname = server.GenerateShortname(h.LengthOfShortname)
+
+		letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+		s := make([]rune, h.LengthOfShortname)
+		for i := range s {
+			s[i] = letters[rand.Intn(len(letters))]
+		}
+
+		shortname = string(s)
 
 		for _, value := range savedData {
 			if _, ok := value[shortname]; ok {
@@ -72,6 +78,23 @@ func (h Handler) getShortname() string {
 	}
 
 	return shortname
+}
+
+func (h Handler) getUserID(r *http.Request) (string, error) {
+	var userID string
+	uk := r.Context().Value(h.UserKey)
+
+	switch v := uk.(type) {
+	default:
+		err := fmt.Errorf("unexpected type of user key %T", v)
+		return "", err
+	case []byte:
+		userID = string(uk.([]byte))
+	case string:
+		userID = uk.(string)
+	}
+
+	return userID, nil
 }
 
 func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
@@ -94,7 +117,11 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodPost:
 
-		userID := r.Context().Value(h.UserKey).(string)
+		userID, err := h.getUserID(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -167,7 +194,11 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h Handler) PostShortenHandler(w http.ResponseWriter, r *http.Request) {
 
-	userID := r.Context().Value(h.UserKey).(string)
+	userID, err := h.getUserID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -257,7 +288,11 @@ func (h Handler) PostShortenHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) PostShortenBatchHandler(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(h.UserKey).(string)
+	userID, err := h.getUserID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -308,17 +343,22 @@ func (h Handler) PostShortenBatchHandler(w http.ResponseWriter, r *http.Request)
 
 func (h Handler) GetAllShorterURLsHandler(w http.ResponseWriter, r *http.Request) {
 
-	var result []AllUserURLs
-
-	userID := r.Context().Value(h.UserKey).(string)
+	userID, err := h.getUserID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	savedData := h.Storage.ReadData()
 	userData := savedData[userID]
+
 	if len(userData) == 0 {
 		err := errors.New("there are no shortened links")
 		http.Error(w, err.Error(), http.StatusNoContent)
 		return
 	}
+
+	result := make([]AllUserURLs, 0, len(userData))
 
 	for key, value := range userData {
 		result = append(result, AllUserURLs{ShortURL: h.Host + "/" + key, OriginalURL: value})
@@ -339,26 +379,16 @@ func (h Handler) GetAllShorterURLsHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (h Handler) newDeleteWorker(userID string, input, out chan string) {
-	go func() {
-		var g []string
-
-		for url := range input {
-			g = append(g, url)
-			out <- url
-		}
-
-		h.Storage.DeleteData(g, userID)
-		close(out)
-	}()
-}
-
 func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 
-	userID := r.Context().Value(h.UserKey).(string)
+	userID, err := h.getUserID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -375,44 +405,15 @@ func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
 
 	var g []string
 
-	if err := json.Unmarshal(b, &g); err != nil {
+	if err = json.Unmarshal(b, &g); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	inputCh := make(chan string)
-
-	go func() {
-		for _, shortURL := range g {
-			inputCh <- shortURL
-		}
-
-		close(inputCh)
-	}()
-
-	fanOutChs := server.FanOut(inputCh, workersCount)
-	workerChs := make([]chan string, 0, workersCount)
-	for _, fanOutCh := range fanOutChs {
-		workerCh := make(chan string)
-		h.newDeleteWorker(userID, fanOutCh, workerCh)
-		workerChs = append(workerChs, workerCh)
-	}
-
-	for v := range server.FanIn(workerChs...) {
-		log.Printf(`Короткая ссылка "%v" была удалена.`, v)
-	}
+	go h.Storage.DeleteData(g, userID)
 
 }
 
 func (h Handler) PingDBConnection(w http.ResponseWriter, r *http.Request) {
-
-	ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
-	defer cancel()
-
-	if err := h.DBConnection.PingContext(ctx); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
+	h.PingDBConnection(w, r)
 }
