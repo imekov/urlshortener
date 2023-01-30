@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bufio"
+	"context"
 	"encoding/gob"
 	"errors"
 	"fmt"
@@ -112,7 +113,7 @@ func (s FileSystemConnect) GetURLByShortname(shortname string) (string, bool) {
 	return "", false
 }
 
-func (s FileSystemConnect) PingDBConnection() error {
+func (s FileSystemConnect) PingDBConnection(ctx context.Context) error {
 	err := errors.New("db is not working, current type - work with files")
 	return err
 }

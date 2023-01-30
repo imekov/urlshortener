@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 )
 
@@ -52,7 +53,7 @@ func (s MemoryWork) GetURLByShortname(shortname string) (string, bool) {
 	return "", false
 }
 
-func (s MemoryWork) PingDBConnection() error {
+func (s MemoryWork) PingDBConnection(ctx context.Context) error {
 	err := errors.New("db is not working, current type - work with memory")
 	return err
 }

@@ -194,11 +194,11 @@ func (s PostgreConnect) GetURLByShortname(shortname string) (originalURL string,
 	return originalURL, isDelete
 }
 
-func (s PostgreConnect) PingDBConnection() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+func (s PostgreConnect) PingDBConnection(ctx context.Context) error {
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
-	err := s.DBConnect.PingContext(ctx)
+	err := s.DBConnect.PingContext(ctxWithTimeout)
 	return err
 
 }

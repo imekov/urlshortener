@@ -2,6 +2,7 @@ package handlers
 
 import "C"
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,7 +22,7 @@ type Repositories interface {
 	SaveData(map[string]map[string]string) error
 	DeleteData([]string, string)
 	GetURLByShortname(string) (string, bool)
-	PingDBConnection() error
+	PingDBConnection(ctx context.Context) error
 }
 
 type Handler struct {
@@ -415,7 +416,7 @@ func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) PingDBConnection(w http.ResponseWriter, r *http.Request) {
-	if err := h.Storage.PingDBConnection(); err != nil {
+	if err := h.Storage.PingDBConnection(r.Context()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
