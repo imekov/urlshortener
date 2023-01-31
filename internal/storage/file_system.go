@@ -81,8 +81,8 @@ func (s FileSystemConnect) SaveData(ctx context.Context, d map[string]map[string
 
 }
 
-func (s FileSystemConnect) DeleteData(ctx context.Context, arrayToDelete []string, user string) {
-	data := s.ReadData(ctx)
+func (s FileSystemConnect) DeleteData(arrayToDelete []string, user string) {
+	data := s.ReadData(context.Background())
 
 	for _, shortURL := range arrayToDelete {
 		if _, isDelete := s.GetURLByShortname(context.Background(), shortURL); !isDelete {
@@ -90,7 +90,7 @@ func (s FileSystemConnect) DeleteData(ctx context.Context, arrayToDelete []strin
 		}
 	}
 
-	err := s.SaveData(ctx, data)
+	err := s.SaveData(context.Background(), data)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

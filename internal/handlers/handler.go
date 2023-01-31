@@ -12,6 +12,8 @@ import (
 	"net/url"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgerrcode"
 	"github.com/lib/pq"
@@ -20,7 +22,7 @@ import (
 type Repositories interface {
 	ReadData(context.Context) map[string]map[string]string
 	SaveData(context.Context, map[string]map[string]string) error
-	DeleteData(context.Context, []string, string)
+	DeleteData([]string, string)
 	GetURLByShortname(context.Context, string) (string, bool)
 	PingDBConnection(ctx context.Context) error
 }
@@ -406,10 +408,6 @@ func (h Handler) GetAllShorterURLsHandler(w http.ResponseWriter, r *http.Request
 
 func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
 
-	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
-	defer cancel()
-	r = r.WithContext(ctx)
-
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 
@@ -432,14 +430,32 @@ func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
 		}
 	}(r.Body)
 
-	var g []string
+	var s []string
 
-	if err = json.Unmarshal(b, &g); err != nil {
+	if err = json.Unmarshal(b, &s); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	go h.Storage.DeleteData(ctx, g, userID)
+	g, ctx := errgroup.WithContext(r.Context())
+
+	g.Go(func() error {
+		for {
+			select {
+			case <-ctx.Done():
+				err := errors.New("context canceled")
+				return err
+			default:
+				h.Storage.DeleteData(s, userID)
+				return nil
+			}
+		}
+	})
+
+	if err = g.Wait(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 }
 

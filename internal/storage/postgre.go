@@ -158,8 +158,8 @@ func (s PostgreConnect) SaveData(ctx context.Context, d map[string]map[string]st
 
 }
 
-func (s PostgreConnect) DeleteData(ctx context.Context, data []string, user string) {
-	tx, err := s.DBConnect.BeginTx(ctx, nil)
+func (s PostgreConnect) DeleteData(data []string, user string) {
+	tx, err := s.DBConnect.Begin()
 	if err != nil {
 		log.Print(err)
 		return

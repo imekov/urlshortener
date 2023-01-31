@@ -30,7 +30,7 @@ func (s MemoryWork) SaveData(_ context.Context, d map[string]map[string]string) 
 
 }
 
-func (s MemoryWork) DeleteData(_ context.Context, arrayToDelete []string, user string) {
+func (s MemoryWork) DeleteData(arrayToDelete []string, user string) {
 
 	for _, shortURL := range arrayToDelete {
 		if _, isDelete := s.GetURLByShortname(context.Background(), shortURL); !isDelete {
