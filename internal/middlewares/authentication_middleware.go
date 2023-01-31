@@ -13,8 +13,8 @@ import (
 )
 
 type Repositories interface {
-	ReadData() map[string]map[string]string
-	SaveData(map[string]map[string]string) error
+	ReadData(context.Context) map[string]map[string]string
+	SaveData(context.Context, map[string]map[string]string) error
 }
 
 type UserCookies struct {
@@ -62,7 +62,7 @@ func (h UserCookies) CheckUserCookies(next http.Handler) http.Handler {
 
 			userID := string(plaintext)
 
-			savedData := h.Storage.ReadData()
+			savedData := h.Storage.ReadData(r.Context())
 			if _, ok := savedData[userID]; errorDecode == nil && ok {
 				ctx := context.WithValue(r.Context(), h.UserKey, userID)
 				r = r.WithContext(ctx)
@@ -74,7 +74,7 @@ func (h UserCookies) CheckUserCookies(next http.Handler) http.Handler {
 		sessionToken := uuid.NewString()
 		savedData := make(map[string]map[string]string)
 		savedData[sessionToken] = map[string]string{}
-		h.Storage.SaveData(savedData)
+		h.Storage.SaveData(r.Context(), savedData)
 
 		plaintext := []byte(sessionToken)
 
