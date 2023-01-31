@@ -40,7 +40,14 @@ func GetNewConnection(db *sql.DB, dbConf string) PostgreConnect {
 	return dbConn
 }
 
-func (s PostgreConnect) ReadData() map[string]map[string]string {
+func (s PostgreConnect) ReadData(ctx context.Context) map[string]map[string]string {
+
+	tx, err := s.DBConnect.BeginTx(ctx, nil)
+	if err != nil {
+		log.Print(err)
+	}
+	defer tx.Rollback()
+
 	data := map[string]map[string]string{}
 
 	rows, err := s.DBConnect.Query("SELECT user_Cookie FROM users")
@@ -98,12 +105,14 @@ func (s PostgreConnect) ReadData() map[string]map[string]string {
 		log.Print(err)
 	}
 
+	tx.Commit()
+
 	return data
 }
 
-func (s PostgreConnect) SaveData(d map[string]map[string]string) error {
+func (s PostgreConnect) SaveData(ctx context.Context, d map[string]map[string]string) error {
 
-	tx, err := s.DBConnect.Begin()
+	tx, err := s.DBConnect.BeginTx(ctx, nil)
 	if err != nil {
 		log.Print(err)
 		return err
@@ -149,8 +158,8 @@ func (s PostgreConnect) SaveData(d map[string]map[string]string) error {
 
 }
 
-func (s PostgreConnect) DeleteData(data []string, user string) {
-	tx, err := s.DBConnect.Begin()
+func (s PostgreConnect) DeleteData(ctx context.Context, data []string, user string) {
+	tx, err := s.DBConnect.BeginTx(ctx, nil)
 	if err != nil {
 		log.Print(err)
 		return
@@ -175,8 +184,8 @@ func (s PostgreConnect) DeleteData(data []string, user string) {
 	tx.Commit()
 }
 
-func (s PostgreConnect) GetURLByShortname(shortname string) (originalURL string, isDelete bool) {
-	tx, err := s.DBConnect.Begin()
+func (s PostgreConnect) GetURLByShortname(ctx context.Context, shortname string) (originalURL string, isDelete bool) {
+	tx, err := s.DBConnect.BeginTx(ctx, nil)
 	if err != nil {
 		log.Print(err)
 		return "", false

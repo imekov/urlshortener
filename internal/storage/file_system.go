@@ -85,7 +85,7 @@ func (s FileSystemConnect) DeleteData(arrayToDelete []string, user string) {
 	data := s.ReadData()
 
 	for _, shortURL := range arrayToDelete {
-		if _, isDelete := s.GetURLByShortname(shortURL); !isDelete {
+		if _, isDelete := s.GetURLByShortname(context.Background(), shortURL); !isDelete {
 			data[user][shortURL] = "-" + data[user][shortURL]
 		}
 	}
@@ -97,7 +97,7 @@ func (s FileSystemConnect) DeleteData(arrayToDelete []string, user string) {
 	}
 }
 
-func (s FileSystemConnect) GetURLByShortname(shortname string) (string, bool) {
+func (s FileSystemConnect) GetURLByShortname(ctx context.Context, shortname string) (string, bool) {
 
 	data := s.ReadData()
 

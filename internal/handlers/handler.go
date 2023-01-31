@@ -18,10 +18,10 @@ import (
 )
 
 type Repositories interface {
-	ReadData() map[string]map[string]string
-	SaveData(map[string]map[string]string) error
-	DeleteData([]string, string)
-	GetURLByShortname(string) (string, bool)
+	ReadData(context.Context) map[string]map[string]string
+	SaveData(context.Context, map[string]map[string]string) error
+	DeleteData(context.Context, []string, string)
+	GetURLByShortname(context.Context, string) (string, bool)
 	PingDBConnection(ctx context.Context) error
 }
 
@@ -47,11 +47,11 @@ type BatchData struct {
 	ShortURL      string `json:"short_url"`
 }
 
-func (h Handler) getShortname() string {
+func (h Handler) getShortname(ctx context.Context) string {
 	var shortname string
 	var result bool
 
-	savedData := h.Storage.ReadData()
+	savedData := h.Storage.ReadData(ctx)
 
 	//проверка на существование сгенерированного имени
 	for {
@@ -104,14 +104,14 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodGet:
 
-		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(60*time.Second))
+		ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 		defer cancel()
 		r = r.WithContext(ctx)
 
 		shortname := chi.URLParam(r, "id")
 		w.Header().Set("content-type", "text/plain; charset=utf-8")
 
-		if originalURL, isDelete := h.Storage.GetURLByShortname(shortname); isDelete {
+		if originalURL, isDelete := h.Storage.GetURLByShortname(ctx, shortname); isDelete {
 			w.WriteHeader(http.StatusGone)
 		} else if originalURL == "" {
 			http.Error(w, "URL not found", http.StatusNotFound)
@@ -122,7 +122,7 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodPost:
 
-		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(60*time.Second))
+		ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 		defer cancel()
 		r = r.WithContext(ctx)
 
@@ -154,17 +154,17 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		shortname := h.getShortname()
+		shortname := h.getShortname(ctx)
 		resultData := map[string]map[string]string{userID: {shortname: currentURL}}
 
-		if err = h.Storage.SaveData(resultData); err != nil {
+		if err = h.Storage.SaveData(ctx, resultData); err != nil {
 			switch e := err.(type) {
 			case *pq.Error:
 				if pgerrcode.IsIntegrityConstraintViolation(string(e.Code)) {
 					w.Header().Set("content-type", "application/json")
 					w.WriteHeader(http.StatusConflict)
 
-					savedData := h.Storage.ReadData()
+					savedData := h.Storage.ReadData(ctx)
 
 					for _, value := range savedData {
 						for short, original := range value {
@@ -203,7 +203,7 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h Handler) PostShortenHandler(w http.ResponseWriter, r *http.Request) {
 
-	ctx, cancel := context.WithTimeout(r.Context(), time.Duration(60*time.Second))
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 	defer cancel()
 	r = r.WithContext(ctx)
 
@@ -240,18 +240,18 @@ func (h Handler) PostShortenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortname := h.getShortname()
+	shortname := h.getShortname(ctx)
 
 	resultData := map[string]map[string]string{userID: {shortname: g.URL}}
 
-	if err = h.Storage.SaveData(resultData); err != nil {
+	if err = h.Storage.SaveData(ctx, resultData); err != nil {
 		switch e := err.(type) {
 		case *pq.Error:
 			if pgerrcode.IsIntegrityConstraintViolation(string(e.Code)) {
 				w.Header().Set("content-type", "application/json")
 				w.WriteHeader(http.StatusConflict)
 
-				savedData := h.Storage.ReadData()
+				savedData := h.Storage.ReadData(ctx)
 
 				for _, value := range savedData {
 					for short, original := range value {
@@ -302,7 +302,7 @@ func (h Handler) PostShortenHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h Handler) PostShortenBatchHandler(w http.ResponseWriter, r *http.Request) {
 
-	ctx, cancel := context.WithTimeout(r.Context(), time.Duration(60*time.Second))
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 	defer cancel()
 	r = r.WithContext(ctx)
 
@@ -336,13 +336,16 @@ func (h Handler) PostShortenBatchHandler(w http.ResponseWriter, r *http.Request)
 	dataToSave[userID] = map[string]string{}
 
 	for index, value := range g {
-		shortname := h.getShortname()
+		shortname := h.getShortname(ctx)
 		dataToSave[userID][shortname] = value.OriginalURL
 		g[index].ShortURL = h.Host + "/" + shortname
 		g[index].OriginalURL = ""
 	}
 
-	h.Storage.SaveData(dataToSave)
+	if err = h.Storage.SaveData(ctx, dataToSave); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	resultJSON, err := json.Marshal(g)
 	if err != nil {
@@ -361,7 +364,7 @@ func (h Handler) PostShortenBatchHandler(w http.ResponseWriter, r *http.Request)
 
 func (h Handler) GetAllShorterURLsHandler(w http.ResponseWriter, r *http.Request) {
 
-	ctx, cancel := context.WithTimeout(r.Context(), time.Duration(60*time.Second))
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 	defer cancel()
 	r = r.WithContext(ctx)
 
@@ -371,7 +374,7 @@ func (h Handler) GetAllShorterURLsHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	savedData := h.Storage.ReadData()
+	savedData := h.Storage.ReadData(ctx)
 	userData := savedData[userID]
 
 	if len(userData) == 0 {
@@ -403,7 +406,7 @@ func (h Handler) GetAllShorterURLsHandler(w http.ResponseWriter, r *http.Request
 
 func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
 
-	ctx, cancel := context.WithTimeout(r.Context(), time.Duration(60*time.Second))
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 	defer cancel()
 	r = r.WithContext(ctx)
 
@@ -436,7 +439,7 @@ func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go h.Storage.DeleteData(g, userID)
+	go h.Storage.DeleteData(ctx, g, userID)
 
 }
 
