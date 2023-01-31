@@ -6,16 +6,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgerrcode"
-	"github.com/lib/pq"
 	"io"
 	"math/rand"
 	"net/http"
 	"net/url"
-)
+	"time"
 
-const workersCount = 5
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgerrcode"
+	"github.com/lib/pq"
+)
 
 type Repositories interface {
 	ReadData() map[string]map[string]string
@@ -104,6 +104,10 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodGet:
 
+		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(60*time.Second))
+		defer cancel()
+		r = r.WithContext(ctx)
+
 		shortname := chi.URLParam(r, "id")
 		w.Header().Set("content-type", "text/plain; charset=utf-8")
 
@@ -117,6 +121,10 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case http.MethodPost:
+
+		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(60*time.Second))
+		defer cancel()
+		r = r.WithContext(ctx)
 
 		userID, err := h.getUserID(r)
 		if err != nil {
@@ -194,6 +202,10 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) PostShortenHandler(w http.ResponseWriter, r *http.Request) {
+
+	ctx, cancel := context.WithTimeout(r.Context(), time.Duration(60*time.Second))
+	defer cancel()
+	r = r.WithContext(ctx)
 
 	userID, err := h.getUserID(r)
 	if err != nil {
@@ -289,6 +301,11 @@ func (h Handler) PostShortenHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) PostShortenBatchHandler(w http.ResponseWriter, r *http.Request) {
+
+	ctx, cancel := context.WithTimeout(r.Context(), time.Duration(60*time.Second))
+	defer cancel()
+	r = r.WithContext(ctx)
+
 	userID, err := h.getUserID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -344,6 +361,10 @@ func (h Handler) PostShortenBatchHandler(w http.ResponseWriter, r *http.Request)
 
 func (h Handler) GetAllShorterURLsHandler(w http.ResponseWriter, r *http.Request) {
 
+	ctx, cancel := context.WithTimeout(r.Context(), time.Duration(60*time.Second))
+	defer cancel()
+	r = r.WithContext(ctx)
+
 	userID, err := h.getUserID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -381,6 +402,10 @@ func (h Handler) GetAllShorterURLsHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
+
+	ctx, cancel := context.WithTimeout(r.Context(), time.Duration(60*time.Second))
+	defer cancel()
+	r = r.WithContext(ctx)
 
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
