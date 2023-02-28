@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"log"
 	"os"
 	"reflect"
@@ -23,8 +24,8 @@ func TestStorage_WriteReadData(t *testing.T) {
 			s := FileSystemConnect{
 				Filename: tt.file,
 			}
-			s.SaveData(tt.want)
-			if got := s.ReadData(); !reflect.DeepEqual(got, tt.want) {
+			s.SaveData(context.Background(), tt.want)
+			if got := s.ReadData(context.Background()); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ReadData() = %v, want %v", got, tt.want)
 			}
 		})

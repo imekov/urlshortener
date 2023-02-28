@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS urls
+(
+    user_ID INT,
+    shortURL VARCHAR(100) NOT NULL,
+    originalURL VARCHAR(100) NOT NULL UNIQUE,
+    isDelete BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (user_ID) REFERENCES users (user_ID)
+);

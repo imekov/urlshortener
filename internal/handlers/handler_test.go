@@ -2,15 +2,10 @@ package handlers
 
 import (
 	"bytes"
+	"crypto/rand"
 	"database/sql"
 	"encoding/json"
-	"github.com/go-chi/chi/v5"
-	_ "github.com/lib/pq"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	urlshortener "github.com/vladimirimekov/url-shortener"
-	"github.com/vladimirimekov/url-shortener/internal/middlewares"
-	"github.com/vladimirimekov/url-shortener/internal/storage"
+	urlshortener "github.com/vladimirimekov/url-shortener/internal"
 	"io"
 	"log"
 	"net/http"
@@ -18,10 +13,16 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
+	_ "github.com/lib/pq"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/vladimirimekov/url-shortener/internal/middlewares"
+	"github.com/vladimirimekov/url-shortener/internal/storage"
 )
 
 const userKey string = "userid"
-const secretKey string = "0Fg79lY0Tq3cdUTMHIcNBvDF0m6QfEZF"
 
 var cfg urlshortener.Config
 
@@ -34,28 +35,39 @@ func TestHandler_MainHandler(t *testing.T) {
 		statusCode  int
 	}
 	tests := []struct {
-		name     string
-		urlValue string
-		wantPost want
-		wantGet  want
+		name           string
+		urlValue       string
+		expectResponse string
+		wantPost       want
+		wantGet        want
 	}{
 		{
-			name:     "simple url",
-			urlValue: "https://google.com",
-			wantPost: want{contentType: "application/json", statusCode: http.StatusCreated},
-			wantGet:  want{contentType: "text/plain; charset=utf-8", statusCode: http.StatusTemporaryRedirect},
+			name:           "simple url",
+			urlValue:       "https://google.com",
+			expectResponse: "https://google.com",
+			wantPost:       want{contentType: "application/json", statusCode: http.StatusCreated},
+			wantGet:        want{contentType: "text/plain; charset=utf-8", statusCode: http.StatusTemporaryRedirect},
 		},
 		{
-			name:     "long url",
-			urlValue: "https://goiejrgoijergiojposd.com",
-			wantPost: want{contentType: "application/json", statusCode: http.StatusCreated},
-			wantGet:  want{contentType: "text/plain; charset=utf-8", statusCode: http.StatusTemporaryRedirect},
+			name:           "long url",
+			urlValue:       "https://goiejrgoijergiojposd.com",
+			expectResponse: "https://goiejrgoijergiojposd.com",
+			wantPost:       want{contentType: "application/json", statusCode: http.StatusCreated},
+			wantGet:        want{contentType: "text/plain; charset=utf-8", statusCode: http.StatusTemporaryRedirect},
 		},
 		{
-			name:     "long url with slugs",
-			urlValue: "https://rthiiurgfougjfeorferguti.com/thgeufijrgeuhfjwer/gerhuiojgeuh",
-			wantPost: want{contentType: "application/json", statusCode: http.StatusCreated},
-			wantGet:  want{contentType: "text/plain; charset=utf-8", statusCode: http.StatusTemporaryRedirect},
+			name:           "long url with slugs",
+			urlValue:       "https://rthiiurgfougjfeorferguti.com/thgeufijrgeuhfjwer/gerhuiojgeuh",
+			expectResponse: "https://rthiiurgfougjfeorferguti.com/thgeufijrgeuhfjwer/gerhuiojgeuh",
+			wantPost:       want{contentType: "application/json", statusCode: http.StatusCreated},
+			wantGet:        want{contentType: "text/plain; charset=utf-8", statusCode: http.StatusTemporaryRedirect},
+		},
+		{
+			name:           "int in url",
+			urlValue:       "6547898765",
+			expectResponse: "",
+			wantPost:       want{contentType: "text/plain; charset=utf-8", statusCode: http.StatusBadRequest},
+			wantGet:        want{contentType: "text/plain; charset=utf-8", statusCode: http.StatusNotFound},
 		},
 	}
 
@@ -74,8 +86,13 @@ func TestHandler_MainHandler(t *testing.T) {
 		Storage:           s,
 		LengthOfShortname: cfg.ShortnameLength,
 		Host:              cfg.BaseURL,
-		UserKey:           userKey,
-		DBConnection:      dbConnection}
+		UserKey:           userKey}
+
+	secretKey := make([]byte, 16)
+	_, err = rand.Read(cfg.Secret)
+	if err != nil {
+		log.Print(err)
+	}
 
 	m := middlewares.UserCookies{Storage: s, Secret: secretKey, UserKey: userKey}
 
@@ -99,7 +116,11 @@ func TestHandler_MainHandler(t *testing.T) {
 			require.NoError(t, err)
 			err = resultPost.Body.Close()
 			require.NoError(t, err)
-			shortURL = string(shortname)
+			if resultPost.StatusCode == http.StatusCreated {
+				shortURL = string(shortname)
+			} else {
+				shortURL = d.Host + tt.urlValue
+			}
 
 			for _, cookie := range resultPost.Cookies() {
 				if cookie.Name == "session_token" {
@@ -133,7 +154,7 @@ func TestHandler_MainHandler(t *testing.T) {
 
 			assert.Equal(t, tt.wantGet.statusCode, resultGet.StatusCode)
 			assert.Equal(t, tt.wantGet.contentType, resultGet.Header.Get("Content-Type"))
-			assert.Equal(t, tt.urlValue, resultGet.Header.Get("Location"))
+			assert.Equal(t, tt.expectResponse, resultGet.Header.Get("Location"))
 		})
 
 	}
@@ -197,8 +218,13 @@ func TestHandler_ShortenHandler(t *testing.T) {
 		Storage:           s,
 		LengthOfShortname: cfg.ShortnameLength,
 		Host:              cfg.BaseURL,
-		UserKey:           userKey,
-		DBConnection:      dbConnection}
+		UserKey:           userKey}
+
+	secretKey := make([]byte, 16)
+	_, err = rand.Read(cfg.Secret)
+	if err != nil {
+		log.Print(err)
+	}
 
 	m := middlewares.UserCookies{Storage: s, Secret: secretKey, UserKey: userKey}
 
@@ -207,7 +233,7 @@ func TestHandler_ShortenHandler(t *testing.T) {
 			w := httptest.NewRecorder()
 			h := chi.NewRouter()
 			h.Use(m.CheckUserCookies)
-			h.HandleFunc("/api/shorten", d.ShortenHandler)
+			h.HandleFunc("/api/shorten", d.PostShortenHandler)
 
 			sendJSON, err := json.Marshal(tt.url)
 			require.NoError(t, err)

@@ -1,8 +1,17 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"log"
+	"time"
+
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+
+	"github.com/lib/pq"
 )
 
 type PostgreConnect struct {
@@ -15,27 +24,30 @@ type URLRow struct {
 	OriginalURL string
 }
 
-func GetNewConnection(db *sql.DB) PostgreConnect {
+func GetNewConnection(db *sql.DB, dbConf string) PostgreConnect {
 
 	dbConn := PostgreConnect{DBConnect: db}
 
-	sqlStatement := `
-CREATE TABLE IF NOT EXISTS users (user_ID INT GENERATED ALWAYS AS IDENTITY, user_Cookie VARCHAR(255) NOT NULL UNIQUE, PRIMARY KEY(user_ID)); 
-CREATE TABLE IF NOT EXISTS urls (	
-    user_ID INT,
-    shortURL VARCHAR(100) NOT NULL, 
-    originalURL VARCHAR(100) NOT NULL UNIQUE,
-    FOREIGN KEY (user_ID) REFERENCES users (user_ID));`
-
-	_, err := dbConn.DBConnect.Exec(sqlStatement)
+	migration, err := migrate.New("file://migrations/postgres", dbConf)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+	}
+
+	if err = migration.Up(); errors.Is(err, migrate.ErrNoChange) {
+		log.Print(err)
 	}
 
 	return dbConn
 }
 
-func (s PostgreConnect) ReadData() map[string]map[string]string {
+func (s PostgreConnect) ReadData(ctx context.Context) map[string]map[string]string {
+
+	tx, err := s.DBConnect.BeginTx(ctx, nil)
+	if err != nil {
+		log.Print(err)
+	}
+	defer tx.Rollback()
+
 	data := map[string]map[string]string{}
 
 	rows, err := s.DBConnect.Query("SELECT user_Cookie FROM users")
@@ -93,12 +105,14 @@ func (s PostgreConnect) ReadData() map[string]map[string]string {
 		log.Print(err)
 	}
 
+	tx.Commit()
+
 	return data
 }
 
-func (s PostgreConnect) SaveData(d map[string]map[string]string) error {
+func (s PostgreConnect) SaveData(ctx context.Context, d map[string]map[string]string) error {
 
-	tx, err := s.DBConnect.Begin()
+	tx, err := s.DBConnect.BeginTx(ctx, nil)
 	if err != nil {
 		log.Print(err)
 		return err
@@ -141,5 +155,59 @@ func (s PostgreConnect) SaveData(d map[string]map[string]string) error {
 
 	tx.Commit()
 	return nil
+
+}
+
+func (s PostgreConnect) DeleteData(data []string, user string) {
+	tx, err := s.DBConnect.Begin()
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	defer tx.Rollback()
+
+	sqlDeleteURLS, err := tx.Prepare("update urls set isDelete = true from (select unnest($1::text[]) as shortURL) as data_table where urls.shortURL = data_table.shortURL and urls.user_ID = (SELECT user_ID from users WHERE user_Cookie=$2);")
+
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	defer sqlDeleteURLS.Close()
+
+	_, err = sqlDeleteURLS.Exec(pq.Array(data), user)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	tx.Commit()
+}
+
+func (s PostgreConnect) GetURLByShortname(ctx context.Context, shortname string) (originalURL string, isDelete bool) {
+	tx, err := s.DBConnect.BeginTx(ctx, nil)
+	if err != nil {
+		log.Print(err)
+		return "", false
+	}
+	defer tx.Rollback()
+
+	err = tx.QueryRow("select originalURL, isDelete from urls where urls.shortURL = $1;", shortname).Scan(&originalURL, &isDelete)
+
+	if err != nil {
+		log.Print(err)
+		return "", false
+	}
+
+	tx.Commit()
+	return originalURL, isDelete
+}
+
+func (s PostgreConnect) PingDBConnection(ctx context.Context) error {
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	err := s.DBConnect.PingContext(ctxWithTimeout)
+	return err
 
 }
