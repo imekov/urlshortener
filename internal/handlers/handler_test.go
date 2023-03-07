@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/json"
-	urlshortener "github.com/vladimirimekov/url-shortener/internal"
 	"io"
 	"log"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	urlshortener "github.com/vladimirimekov/url-shortener/internal"
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/lib/pq"

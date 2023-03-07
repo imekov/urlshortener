@@ -2,9 +2,10 @@ package benchmark
 
 import (
 	"context"
+	"testing"
+
 	"github.com/vladimirimekov/url-shortener/internal/handlers"
 	"github.com/vladimirimekov/url-shortener/internal/storage"
-	"testing"
 )
 
 type userIDtype string
