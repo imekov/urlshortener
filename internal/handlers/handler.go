@@ -1,6 +1,5 @@
 package handlers
 
-import "C"
 import (
 	"context"
 	"encoding/json"
@@ -49,7 +48,7 @@ type BatchData struct {
 	ShortURL      string `json:"short_url"`
 }
 
-func (h Handler) getShortname(ctx context.Context) string {
+func (h Handler) GetShortname(ctx context.Context) string {
 	var shortname string
 	var result bool
 
@@ -156,7 +155,7 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		shortname := h.getShortname(ctx)
+		shortname := h.GetShortname(ctx)
 		resultData := map[string]map[string]string{userID: {shortname: currentURL}}
 
 		if err = h.Storage.SaveData(ctx, resultData); err != nil {
@@ -242,7 +241,7 @@ func (h Handler) PostShortenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortname := h.getShortname(ctx)
+	shortname := h.GetShortname(ctx)
 
 	resultData := map[string]map[string]string{userID: {shortname: g.URL}}
 
@@ -338,7 +337,7 @@ func (h Handler) PostShortenBatchHandler(w http.ResponseWriter, r *http.Request)
 	dataToSave[userID] = map[string]string{}
 
 	for index, value := range g {
-		shortname := h.getShortname(ctx)
+		shortname := h.GetShortname(ctx)
 		dataToSave[userID][shortname] = value.OriginalURL
 		g[index].ShortURL = h.Host + "/" + shortname
 		g[index].OriginalURL = ""

@@ -59,8 +59,6 @@ func GetServer(dbConnection *sql.DB) (string, *chi.Mux) {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Use(middlewares.GZIPRead)
-	r.Use(middlewares.GZIPWrite)
 	r.Use(m.CheckUserCookies)
 
 	r.Route("/{id}", func(r chi.Router) {
