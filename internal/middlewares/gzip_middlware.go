@@ -12,10 +12,12 @@ type gzipWriter struct {
 	io.Writer
 }
 
+// Write реализовывает интерфейс write.
 func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
+// GZIPRead читает архивированные данные.
 func GZIPRead(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -33,6 +35,7 @@ func GZIPRead(next http.Handler) http.Handler {
 	})
 }
 
+// GZIPWrite пишет архивированные данные.
 func GZIPWrite(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
