@@ -9,10 +9,12 @@ import (
 	"os"
 )
 
+// FileSystemConnect содержит имя файла.
 type FileSystemConnect struct {
 	Filename string
 }
 
+// openFile возвращает ссылку на открытый файл.
 func (s FileSystemConnect) openFile(flag int) *os.File {
 
 	dataFile, err := os.OpenFile(s.Filename, flag|os.O_CREATE, 0777)
@@ -24,6 +26,7 @@ func (s FileSystemConnect) openFile(flag int) *os.File {
 	return dataFile
 }
 
+// ReadData читает данные из файла.
 func (s FileSystemConnect) ReadData(context.Context) map[string]map[string]string {
 	var data map[string]map[string]string
 
@@ -46,6 +49,7 @@ func (s FileSystemConnect) ReadData(context.Context) map[string]map[string]strin
 	return data
 }
 
+// SaveData сохраняет данные в файл.
 func (s FileSystemConnect) SaveData(ctx context.Context, d map[string]map[string]string) error {
 	data := s.ReadData(ctx)
 
@@ -81,6 +85,7 @@ func (s FileSystemConnect) SaveData(ctx context.Context, d map[string]map[string
 
 }
 
+// DeleteData удаляет данные из файла.
 func (s FileSystemConnect) DeleteData(arrayToDelete []string, user string) {
 	data := s.ReadData(context.Background())
 
@@ -97,6 +102,7 @@ func (s FileSystemConnect) DeleteData(arrayToDelete []string, user string) {
 	}
 }
 
+// GetURLByShortname возвращает исходный URL на основе исходной ссылки.
 func (s FileSystemConnect) GetURLByShortname(ctx context.Context, shortname string) (string, bool) {
 
 	data := s.ReadData(ctx)
@@ -113,6 +119,7 @@ func (s FileSystemConnect) GetURLByShortname(ctx context.Context, shortname stri
 	return "", false
 }
 
+// PingDBConnection - заглушка для интерфейса.
 func (s FileSystemConnect) PingDBConnection(ctx context.Context) error {
 	err := errors.New("db is not working, current type - work with files")
 	return err

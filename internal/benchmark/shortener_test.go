@@ -12,6 +12,7 @@ type userIDtype string
 
 const userKey userIDtype = "userid"
 
+// BenchmarkShortener - бенчмарки для тестирования сервиса сокращателя ссылок.
 func BenchmarkShortener(b *testing.B) {
 
 	const count = 10_000_000

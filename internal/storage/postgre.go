@@ -14,16 +14,19 @@ import (
 	"github.com/lib/pq"
 )
 
+// PostgreConnect хранит соединение с базой данных.
 type PostgreConnect struct {
 	DBConnect *sql.DB
 }
 
+// URLRow используется для чтения данных из базы данных.
 type URLRow struct {
 	UserID      string
 	ShortURL    string
 	OriginalURL string
 }
 
+// GetNewConnection - конструктор PostgreConnect.
 func GetNewConnection(db *sql.DB, dbConf string) PostgreConnect {
 
 	dbConn := PostgreConnect{DBConnect: db}
@@ -40,6 +43,7 @@ func GetNewConnection(db *sql.DB, dbConf string) PostgreConnect {
 	return dbConn
 }
 
+// ReadData читает данные из базы данных.
 func (s PostgreConnect) ReadData(ctx context.Context) map[string]map[string]string {
 
 	tx, err := s.DBConnect.BeginTx(ctx, nil)
@@ -110,6 +114,7 @@ func (s PostgreConnect) ReadData(ctx context.Context) map[string]map[string]stri
 	return data
 }
 
+// SaveData сохраняет данные в БД.
 func (s PostgreConnect) SaveData(ctx context.Context, d map[string]map[string]string) error {
 
 	tx, err := s.DBConnect.BeginTx(ctx, nil)
@@ -158,6 +163,7 @@ func (s PostgreConnect) SaveData(ctx context.Context, d map[string]map[string]st
 
 }
 
+// DeleteData удаляет данные из БД.
 func (s PostgreConnect) DeleteData(data []string, user string) {
 	tx, err := s.DBConnect.Begin()
 	if err != nil {
@@ -184,6 +190,7 @@ func (s PostgreConnect) DeleteData(data []string, user string) {
 	tx.Commit()
 }
 
+// GetURLByShortname возвращает из БД оригинальный URL на основе сокращенной ссылки.
 func (s PostgreConnect) GetURLByShortname(ctx context.Context, shortname string) (originalURL string, isDelete bool) {
 	tx, err := s.DBConnect.BeginTx(ctx, nil)
 	if err != nil {
@@ -203,6 +210,7 @@ func (s PostgreConnect) GetURLByShortname(ctx context.Context, shortname string)
 	return originalURL, isDelete
 }
 
+// PingDBConnection проверяет соединение с базой данных.
 func (s PostgreConnect) PingDBConnection(ctx context.Context) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
