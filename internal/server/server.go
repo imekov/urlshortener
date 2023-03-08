@@ -59,6 +59,8 @@ func GetServer(dbConnection *sql.DB) (string, *chi.Mux) {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(middlewares.GZIPRead)
+	r.Use(middlewares.GZIPWrite)
 
 	r.Use(m.CheckUserCookies)
 
