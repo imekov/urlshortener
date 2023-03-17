@@ -12,17 +12,20 @@ import (
 	"github.com/google/uuid"
 )
 
+// Repositories использует методы для работы с данными.
 type Repositories interface {
 	ReadData(context.Context) map[string]map[string]string
 	SaveData(context.Context, map[string]map[string]string) error
 }
 
+// UserCookies хранит интерфейс, секретный ключ и пользовательский тип для сохранения userID в контексте.
 type UserCookies struct {
 	Storage Repositories
 	Secret  []byte
 	UserKey interface{}
 }
 
+// CheckUserCookies проверяет данные авторизации.
 func (h UserCookies) CheckUserCookies(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

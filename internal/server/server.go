@@ -17,6 +17,7 @@ type userIDtype string
 
 const userKey userIDtype = "userid"
 
+// GetServer возвращает Chi сервер со всеми хэндлерами и мидлвэрами.
 func GetServer(dbConnection *sql.DB) (string, *chi.Mux) {
 
 	cfg := internal.GetConfig()
@@ -58,9 +59,9 @@ func GetServer(dbConnection *sql.DB) (string, *chi.Mux) {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-
 	r.Use(middlewares.GZIPRead)
 	r.Use(middlewares.GZIPWrite)
+
 	r.Use(m.CheckUserCookies)
 
 	r.Route("/{id}", func(r chi.Router) {
