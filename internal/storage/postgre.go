@@ -26,12 +26,8 @@ type URLRow struct {
 	OriginalURL string
 }
 
-<<<<<<< HEAD
-func GetNewConnection(db *sql.DB, dbConf string, migrationAddress string) PostgreConnect {
-=======
 // GetNewConnection - конструктор PostgreConnect.
-func GetNewConnection(db *sql.DB, dbConf string) PostgreConnect {
->>>>>>> c64898b55397495e7a8403003cb29c7f24a2d4ea
+func GetNewConnection(db *sql.DB, dbConf string, migrationAddress string) PostgreConnect {
 
 	dbConn := PostgreConnect{DBConnect: db}
 
