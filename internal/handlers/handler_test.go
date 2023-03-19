@@ -103,6 +103,9 @@ func TestHandler_MainHandler(t *testing.T) {
 			w := httptest.NewRecorder()
 			h := chi.NewRouter()
 			h.Use(m.CheckUserCookies)
+			h.Use(middlewares.GZIPRead)
+			h.Use(middlewares.GZIPWrite)
+
 			h.HandleFunc("/", d.MainHandler)
 
 			requestPost := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.urlValue))
@@ -135,8 +138,12 @@ func TestHandler_MainHandler(t *testing.T) {
 			w := httptest.NewRecorder()
 			h := chi.NewRouter()
 			h.Use(m.CheckUserCookies)
+			h.Use(middlewares.GZIPRead)
+			h.Use(middlewares.GZIPWrite)
 
 			h.HandleFunc("/{id}", d.MainHandler)
+			h.HandleFunc("/api/user/urls", d.GetAllShorterURLsHandler)
+			h.HandleFunc("/api/user/urls", d.DeleteURLS)
 
 			requestGet := httptest.NewRequest(http.MethodGet, shortURL, nil)
 
@@ -155,6 +162,9 @@ func TestHandler_MainHandler(t *testing.T) {
 			assert.Equal(t, tt.wantGet.statusCode, resultGet.StatusCode)
 			assert.Equal(t, tt.wantGet.contentType, resultGet.Header.Get("Content-Type"))
 			assert.Equal(t, tt.expectResponse, resultGet.Header.Get("Location"))
+
+			h.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/user/urls", nil))
+			h.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/api/user/urls", strings.NewReader(tt.urlValue)))
 		})
 
 	}

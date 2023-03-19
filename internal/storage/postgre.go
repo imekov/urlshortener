@@ -24,11 +24,11 @@ type URLRow struct {
 	OriginalURL string
 }
 
-func GetNewConnection(db *sql.DB, dbConf string) PostgreConnect {
+func GetNewConnection(db *sql.DB, dbConf string, migrationAddress string) PostgreConnect {
 
 	dbConn := PostgreConnect{DBConnect: db}
 
-	migration, err := migrate.New("file://migrations/postgres", dbConf)
+	migration, err := migrate.New(migrationAddress, dbConf)
 	if err != nil {
 		log.Print(err)
 	}
