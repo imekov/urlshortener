@@ -3,12 +3,14 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"github.com/vladimirimekov/url-shortener/internal"
 	"testing"
 
 	_ "github.com/lib/pq"
 )
 
 func TestPostgreStorage_WriteReadData(t *testing.T) {
+	cfg := internal.GetConfig()
 
 	tests := []struct {
 		name string
@@ -22,9 +24,9 @@ func TestPostgreStorage_WriteReadData(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			dbConnection, _ := sql.Open("postgres", "postgres://postgres:12345678@localhost:5432/urlshortener?sslmode=disable")
+			dbConnection, _ := sql.Open("postgres", cfg.DBAddress)
 			defer dbConnection.Close()
-			s := GetNewConnection(dbConnection, "postgres://postgres:12345678@localhost:5432/urlshortener?sslmode=disable", "file://../../migrations/postgres")
+			s := GetNewConnection(dbConnection, cfg.DBAddress, "file://../../migrations/postgres")
 			ctx := context.Background()
 
 			s.SaveData(ctx, tt.want)
