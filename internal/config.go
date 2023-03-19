@@ -8,6 +8,7 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
+// Config содержит ключевые параметры для работы прогрмамы.
 type Config struct {
 	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:":8080"`
 	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
@@ -17,6 +18,7 @@ type Config struct {
 	Secret          []byte
 }
 
+// GetConfig читает данные из окружения и возвращает заполненный Config.
 func GetConfig() Config {
 	var cfg Config
 

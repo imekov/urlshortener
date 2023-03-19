@@ -5,14 +5,17 @@ import (
 	"errors"
 )
 
+// MemoryWork хранит данные в мапе.
 type MemoryWork struct {
 	UserData map[string]map[string]string
 }
 
+// ReadData возвращает мапу с данными.
 func (s MemoryWork) ReadData(context.Context) map[string]map[string]string {
 	return s.UserData
 }
 
+// SaveData сохраняет пользовательские ссылки в память.
 func (s MemoryWork) SaveData(_ context.Context, d map[string]map[string]string) error {
 
 	for userID, values := range d {
@@ -30,6 +33,7 @@ func (s MemoryWork) SaveData(_ context.Context, d map[string]map[string]string) 
 
 }
 
+// DeleteData помечает на удаление сохранённые ссылки.
 func (s MemoryWork) DeleteData(arrayToDelete []string, user string) {
 
 	for _, shortURL := range arrayToDelete {
@@ -39,6 +43,7 @@ func (s MemoryWork) DeleteData(arrayToDelete []string, user string) {
 	}
 }
 
+// GetURLByShortname возвращает оригинальный URL из памяти на основе сокращённок ссылки.
 func (s MemoryWork) GetURLByShortname(_ context.Context, shortname string) (string, bool) {
 
 	for _, value := range s.UserData {
@@ -53,6 +58,7 @@ func (s MemoryWork) GetURLByShortname(_ context.Context, shortname string) (stri
 	return "", false
 }
 
+// PingDBConnection - заглушка для работы интерфейса.
 func (s MemoryWork) PingDBConnection(context.Context) error {
 	err := errors.New("db is not working, current type - work with memory")
 	return err

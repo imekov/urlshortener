@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/json"
-	urlshortener "github.com/vladimirimekov/url-shortener/internal"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -13,6 +13,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	urlshortener "github.com/vladimirimekov/url-shortener/internal"
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/lib/pq"
@@ -26,6 +28,63 @@ const userKey string = "userid"
 
 var cfg urlshortener.Config
 
+func ExampleHandler_MainHandler() {
+
+	var userID string
+	s := storage.FileSystemConnect{Filename: cfg.Filename}
+	d := Handler{
+		Storage:           s,
+		LengthOfShortname: cfg.ShortnameLength,
+		Host:              cfg.BaseURL,
+		UserKey:           userKey}
+
+	secretKey := make([]byte, 16)
+	_, err := rand.Read(cfg.Secret)
+	if err != nil {
+		log.Print(err)
+	}
+
+	m := middlewares.UserCookies{Storage: s, Secret: secretKey, UserKey: userKey}
+
+	h := chi.NewRouter()
+	h.Use(m.CheckUserCookies)
+	h.HandleFunc("/", d.MainHandler)
+
+	w := httptest.NewRecorder()
+	cfg = urlshortener.GetConfig()
+
+	requestPost := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("https://google.com"))
+	h.ServeHTTP(w, requestPost)
+	resultPost := w.Result()
+	shortname, _ := io.ReadAll(resultPost.Body)
+	resultPost.Body.Close()
+	shortURL := string(shortname)
+	fmt.Println(shortURL)
+
+	for _, cookie := range resultPost.Cookies() {
+		if cookie.Name == "session_token" {
+			userID = cookie.Value
+		}
+	}
+
+	requestGet := httptest.NewRequest(http.MethodGet, shortURL, nil)
+
+	requestGet.AddCookie(&http.Cookie{
+		Name:  "session_token",
+		Value: userID,
+		Path:  "/",
+	})
+
+	h.ServeHTTP(w, requestGet)
+	resultGet := w.Result()
+	resultGet.Body.Close()
+	originalURL, _ := io.ReadAll(resultGet.Body)
+	resultGet.Body.Close()
+	fmt.Println(originalURL)
+
+}
+
+// TestHandler_MainHandler проверяет GET и POST методы MainHandler.
 func TestHandler_MainHandler(t *testing.T) {
 
 	cfg = urlshortener.GetConfig()
@@ -176,6 +235,7 @@ func TestHandler_MainHandler(t *testing.T) {
 
 }
 
+// TestHandler_ShortenHandler тестирует ручку ShortenHandler.
 func TestHandler_ShortenHandler(t *testing.T) {
 
 	type sourceData struct {

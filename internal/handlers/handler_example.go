@@ -1,6 +1,5 @@
 package handlers
 
-import "C"
 import (
 	"context"
 	"encoding/json"
@@ -19,6 +18,7 @@ import (
 	"github.com/lib/pq"
 )
 
+// Repositories - интерфейс с методами для работы модуля.
 type Repositories interface {
 	ReadData(context.Context) map[string]map[string]string
 	SaveData(context.Context, map[string]map[string]string) error
@@ -27,6 +27,7 @@ type Repositories interface {
 	PingDBConnection(ctx context.Context) error
 }
 
+// Handler хранит базовые настройки хэндлера и интерфейс с методами для работы с хэнделами.
 type Handler struct {
 	Storage           Repositories
 	LengthOfShortname int
@@ -34,22 +35,26 @@ type Handler struct {
 	UserKey           interface{}
 }
 
+// GetData содержит структуру для получения ссылок в формате json.
 type GetData struct {
 	URL string `json:"url"`
 }
 
+// AllUserURLs содержит структуру для json данных со всеми пользовательскими URL.
 type AllUserURLs struct {
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
 
+// BatchData содержит структуру для получения json данных с пачкой ссылок для сокращения.
 type BatchData struct {
 	CorrelationID string `json:"correlation_id"`
 	OriginalURL   string `json:"original_url,omitempty"`
 	ShortURL      string `json:"short_url"`
 }
 
-func (h Handler) getShortname(ctx context.Context) string {
+// GetShortname возвращает неиспользуемую раннее строку для сокращения ссылок.
+func (h Handler) GetShortname(ctx context.Context) string {
 	var shortname string
 	var result bool
 
@@ -83,6 +88,7 @@ func (h Handler) getShortname(ctx context.Context) string {
 	return shortname
 }
 
+// Внутренняя функция для получения айди из контекста
 func (h Handler) getUserID(r *http.Request) (string, error) {
 	var userID string
 	uk := r.Context().Value(h.UserKey)
@@ -100,6 +106,8 @@ func (h Handler) getUserID(r *http.Request) (string, error) {
 	return userID, nil
 }
 
+// MainHandler содержит 2 в основных метода для получения сокращенной ссылки через POST запрос и получение оригинальной
+// ссылки через GET запрос.
 func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
@@ -149,14 +157,13 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 
 		currentURL := string(b)
 
-		//проверка на валидность url
-		_, err = url.ParseRequestURI(currentURL)
+		_, err = url.ParseRequestURI(currentURL) //проверка на валидность url
 		if err != nil {
 			http.Error(w, "Invalid URL value", http.StatusBadRequest)
 			return
 		}
 
-		shortname := h.getShortname(ctx)
+		shortname := h.GetShortname(ctx)
 		resultData := map[string]map[string]string{userID: {shortname: currentURL}}
 
 		if err = h.Storage.SaveData(ctx, resultData); err != nil {
@@ -203,6 +210,7 @@ func (h Handler) MainHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// PostShortenHandler создает сокращенную ссылку из URL, полученного в json формате.
 func (h Handler) PostShortenHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
@@ -242,7 +250,7 @@ func (h Handler) PostShortenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortname := h.getShortname(ctx)
+	shortname := h.GetShortname(ctx)
 
 	resultData := map[string]map[string]string{userID: {shortname: g.URL}}
 
@@ -302,6 +310,7 @@ func (h Handler) PostShortenHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// PostShortenBatchHandler получает ссылки списком, после чего возвращает итоговый массив с сокращенными URL.
 func (h Handler) PostShortenBatchHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
@@ -338,7 +347,7 @@ func (h Handler) PostShortenBatchHandler(w http.ResponseWriter, r *http.Request)
 	dataToSave[userID] = map[string]string{}
 
 	for index, value := range g {
-		shortname := h.getShortname(ctx)
+		shortname := h.GetShortname(ctx)
 		dataToSave[userID][shortname] = value.OriginalURL
 		g[index].ShortURL = h.Host + "/" + shortname
 		g[index].OriginalURL = ""
@@ -364,6 +373,7 @@ func (h Handler) PostShortenBatchHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// GetAllShorterURLsHandler отправляет список всех сокращенных ссылок текущего пользователя.
 func (h Handler) GetAllShorterURLsHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
@@ -406,6 +416,7 @@ func (h Handler) GetAllShorterURLsHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// DeleteURLS выполняет асинхронное удаление ссылок.
 func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("content-type", "application/json")
@@ -459,6 +470,7 @@ func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// PingDBConnection проверяет соединение с базой данных.
 func (h Handler) PingDBConnection(w http.ResponseWriter, r *http.Request) {
 	if err := h.Storage.PingDBConnection(r.Context()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

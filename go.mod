@@ -4,7 +4,11 @@ go 1.19
 
 require (
 	github.com/caarlos0/env/v6 v6.10.1
+<<<<<<< HEAD
 	github.com/go-chi/chi/v5 v5.0.7
+=======
+	github.com/go-chi/chi/v5 v5.0.8
+>>>>>>> c64898b55397495e7a8403003cb29c7f24a2d4ea
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/google/uuid v1.3.0
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa

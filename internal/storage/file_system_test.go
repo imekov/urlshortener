@@ -8,6 +8,7 @@ import (
 	"testing"
 )
 
+// TestStorage_WriteReadData тестирует сохранение данных в файл.
 func TestStorage_WriteReadData(t *testing.T) {
 	tests := []struct {
 		name string
