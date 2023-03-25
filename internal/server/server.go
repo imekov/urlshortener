@@ -44,7 +44,7 @@ func GetServer(dbConnection *sql.DB) (string, *chi.Mux) {
 			log.Fatalf("unable to connect to database %v\n", cfg.DBAddress)
 		}
 
-		h.Storage = storage.GetNewConnection(dbConnection, cfg.DBAddress)
+		h.Storage = storage.GetNewConnection(dbConnection, cfg.DBAddress, "file://migrations/postgres")
 	} else if cfg.Filename != "" {
 		h.Storage = storage.FileSystemConnect{Filename: cfg.Filename}
 	} else {

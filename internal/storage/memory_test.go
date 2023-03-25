@@ -2,14 +2,11 @@ package storage
 
 import (
 	"context"
-	"log"
-	"os"
 	"reflect"
 	"testing"
 )
 
-// TestStorage_WriteReadData тестирует сохранение данных в файл.
-func TestStorage_WriteReadData(t *testing.T) {
+func TestMemoryStorage_WriteReadData(t *testing.T) {
 	tests := []struct {
 		name string
 		file string
@@ -22,8 +19,8 @@ func TestStorage_WriteReadData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := FileSystemConnect{
-				Filename: tt.file,
+			s := MemoryWork{
+				UserData: make(map[string]map[string]string),
 			}
 			ctx := context.Background()
 			s.SaveData(ctx, tt.want)
@@ -41,9 +38,6 @@ func TestStorage_WriteReadData(t *testing.T) {
 			s.PingDBConnection(ctx)
 
 		})
-		err := os.Remove(tt.file)
-		if err != nil {
-			log.Print(err)
-		}
+
 	}
 }
