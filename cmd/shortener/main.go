@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"golang.org/x/crypto/acme/autocert"
 	"log"
 	"net/http"
 
@@ -27,5 +28,23 @@ func main() {
 		http.ListenAndServe("127.0.0.1:9999", nil)
 	}()
 
-	log.Fatal(http.ListenAndServe(server.GetServer(dbConnection)))
+	cfg, router := server.GetServer(dbConnection)
+
+	if cfg.EnableHttps {
+		manager := &autocert.Manager{
+			Cache:      autocert.DirCache("cache-dir"),
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist("localhost", "127.0.0.1"),
+		}
+
+		httpsServer := &http.Server{
+			Addr:      ":443",
+			Handler:   router,
+			TLSConfig: manager.TLSConfig(),
+		}
+		log.Fatal(httpsServer.ListenAndServeTLS("", ""))
+	} else {
+		log.Fatal(http.ListenAndServe(cfg.ServerAddress, router))
+	}
+
 }

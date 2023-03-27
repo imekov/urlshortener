@@ -15,6 +15,7 @@ type Config struct {
 	Filename        string `env:"FILE_STORAGE_PATH"`
 	DBAddress       string `env:"DATABASE_DSN"`
 	ShortnameLength int    `env:"SHORTNAME_LENGTH" envDefault:"8"`
+	EnableHttps     bool   `env:"ENABLE_HTTPS"`
 	Secret          []byte
 }
 
@@ -31,6 +32,7 @@ func GetConfig() Config {
 	flag.StringVar(&cfg.BaseURL, "b", cfg.BaseURL, "the base address of the resulting shortened URL")
 	flag.StringVar(&cfg.Filename, "f", cfg.Filename, "the path to file with shortened URLs")
 	flag.StringVar(&cfg.DBAddress, "d", cfg.DBAddress, "the address of the connection to the database")
+	flag.BoolVar(&cfg.EnableHttps, "s", cfg.EnableHttps, "start server with HTTPS")
 	flag.Parse()
 
 	cfg.Secret = make([]byte, 16)

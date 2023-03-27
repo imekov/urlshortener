@@ -18,7 +18,7 @@ type userIDtype string
 const userKey userIDtype = "userid"
 
 // GetServer возвращает Chi сервер со всеми хэндлерами и мидлвэрами.
-func GetServer(dbConnection *sql.DB) (string, *chi.Mux) {
+func GetServer(dbConnection *sql.DB) (internal.Config, *chi.Mux) {
 
 	cfg := internal.GetConfig()
 	memoryVar := make(map[string]map[string]string)
@@ -93,5 +93,5 @@ func GetServer(dbConnection *sql.DB) (string, *chi.Mux) {
 		r.Get("/", h.PingDBConnection)
 	})
 
-	return cfg.ServerAddress, r
+	return cfg, r
 }
