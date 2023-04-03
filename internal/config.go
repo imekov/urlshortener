@@ -22,6 +22,7 @@ type Config struct {
 	Secret          []byte
 }
 
+// FileConfig содержит параметры для чтения из JSON.
 type FileConfig struct {
 	ServerAddress   string `json:"server_address"`
 	BaseURL         string `json:"base_url"`
