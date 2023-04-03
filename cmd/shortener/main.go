@@ -35,7 +35,7 @@ func main() {
 
 	cfg, router := server.GetServer(dbConnection)
 
-	if cfg.EnableHttps {
+	if cfg.EnableHTTPS {
 		manager := &autocert.Manager{
 			Cache:      autocert.DirCache("cache-dir"),
 			Prompt:     autocert.AcceptTOS,
@@ -71,7 +71,7 @@ func main() {
 			log.Fatalf("HTTP server ListenAndServe: %v", err)
 		}
 		<-idleConnsClosed
-		fmt.Println("Server Shutdown gracefully")
+		os.Exit(0)
 	}
 
 }

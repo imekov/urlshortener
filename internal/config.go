@@ -18,16 +18,16 @@ type Config struct {
 	DBAddress       string `env:"DATABASE_DSN"`
 	JSONConfig      string `env:"CONFIG"`
 	ShortnameLength int    `env:"SHORTNAME_LENGTH" envDefault:"8"`
-	EnableHttps     bool   `env:"ENABLE_HTTPS"`
+	EnableHTTPS     bool   `env:"ENABLE_HTTPS"`
 	Secret          []byte
 }
 
 type FileConfig struct {
 	ServerAddress   string `json:"server_address"`
-	BaseUrl         string `json:"base_url"`
+	BaseURL         string `json:"base_url"`
 	FileStoragePath string `json:"file_storage_path"`
 	DatabaseDsn     string `json:"database_dsn"`
-	EnableHttps     bool   `json:"enable_https"`
+	EnableHTTPS     bool   `json:"enable_https"`
 }
 
 // GetConfig читает данные из окружения и возвращает заполненный Config.
@@ -44,7 +44,7 @@ func GetConfig() Config {
 	flag.StringVar(&cfg.BaseURL, "b", cfg.BaseURL, "the base address of the resulting shortened URL")
 	flag.StringVar(&cfg.Filename, "f", cfg.Filename, "the path to file with shortened URLs")
 	flag.StringVar(&cfg.DBAddress, "d", cfg.DBAddress, "the address of the connection to the database")
-	flag.BoolVar(&cfg.EnableHttps, "s", cfg.EnableHttps, "start server with HTTPS")
+	flag.BoolVar(&cfg.EnableHTTPS, "s", cfg.EnableHTTPS, "start server with HTTPS")
 	flag.Parse()
 
 	cfg.Secret = make([]byte, 16)
@@ -69,7 +69,7 @@ func GetConfig() Config {
 			cfg.ServerAddress = fileconfig.ServerAddress
 		}
 		if len(cfg.BaseURL) == 0 {
-			cfg.BaseURL = fileconfig.BaseUrl
+			cfg.BaseURL = fileconfig.BaseURL
 		}
 		if len(cfg.Filename) == 0 {
 			cfg.Filename = fileconfig.FileStoragePath
@@ -77,8 +77,8 @@ func GetConfig() Config {
 		if len(cfg.DBAddress) == 0 {
 			cfg.DBAddress = fileconfig.DatabaseDsn
 		}
-		if !cfg.EnableHttps {
-			cfg.EnableHttps = fileconfig.EnableHttps
+		if !cfg.EnableHTTPS {
+			cfg.EnableHTTPS = fileconfig.EnableHTTPS
 		}
 
 	}
