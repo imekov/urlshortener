@@ -25,6 +25,7 @@ type Repositories interface {
 	DeleteData([]string, string)
 	GetURLByShortname(context.Context, string) (string, bool)
 	PingDBConnection(ctx context.Context) error
+	GetStatistic() (int, int)
 }
 
 // Handler хранит базовые настройки хэндлера и интерфейс с методами для работы с хэнделами.
@@ -44,6 +45,12 @@ type GetData struct {
 type AllUserURLs struct {
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
+}
+
+// Statistic содержит структуру для json данных со статистикой.
+type Statistic struct {
+	Urls  int `json:"urls"`
+	Users int `json:"users"`
 }
 
 // BatchData содержит структуру для получения json данных с пачкой ссылок для сокращения.
@@ -477,4 +484,29 @@ func (h Handler) PingDBConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+// GetStats возвращает количество сокращённых URL в сервисе и количество пользователей в сервисе.
+func (h Handler) GetStats(w http.ResponseWriter, r *http.Request) {
+
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
+
+	urls, users := h.Storage.GetStatistic()
+	result := Statistic{Urls: urls, Users: users}
+
+	resultJSON, err := json.Marshal(result)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(resultJSON)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

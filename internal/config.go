@@ -19,6 +19,7 @@ type Config struct {
 	JSONConfig      string `env:"CONFIG"`
 	ShortnameLength int    `env:"SHORTNAME_LENGTH" envDefault:"8"`
 	EnableHTTPS     bool   `env:"ENABLE_HTTPS"`
+	TrustedSubnet   string `env:"TRUSTED_SUBNET"`
 	Secret          []byte
 }
 
@@ -29,6 +30,7 @@ type FileConfig struct {
 	FileStoragePath string `json:"file_storage_path"`
 	DatabaseDsn     string `json:"database_dsn"`
 	EnableHTTPS     bool   `json:"enable_https"`
+	TrustedSubnet   string `json:"trusted_subnet"`
 }
 
 // GetConfig читает данные из окружения и возвращает заполненный Config.
@@ -45,6 +47,7 @@ func GetConfig() Config {
 	flag.StringVar(&cfg.BaseURL, "b", cfg.BaseURL, "the base address of the resulting shortened URL")
 	flag.StringVar(&cfg.Filename, "f", cfg.Filename, "the path to file with shortened URLs")
 	flag.StringVar(&cfg.DBAddress, "d", cfg.DBAddress, "the address of the connection to the database")
+	flag.StringVar(&cfg.TrustedSubnet, "t", cfg.TrustedSubnet, "classless address string representation (CIDR)")
 	flag.BoolVar(&cfg.EnableHTTPS, "s", cfg.EnableHTTPS, "start server with HTTPS")
 	flag.Parse()
 
@@ -80,6 +83,9 @@ func GetConfig() Config {
 		}
 		if !cfg.EnableHTTPS {
 			cfg.EnableHTTPS = fileconfig.EnableHTTPS
+		}
+		if len(cfg.TrustedSubnet) == 0 {
+			cfg.TrustedSubnet = fileconfig.TrustedSubnet
 		}
 
 	}

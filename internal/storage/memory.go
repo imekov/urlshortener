@@ -63,3 +63,11 @@ func (s MemoryWork) PingDBConnection(context.Context) error {
 	err := errors.New("db is not working, current type - work with memory")
 	return err
 }
+
+func (s MemoryWork) GetStatistic() (urls int, users int) {
+	for _, v := range s.UserData {
+		urls += len(v)
+	}
+
+	return urls, len(s.UserData)
+}

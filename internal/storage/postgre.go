@@ -219,3 +219,29 @@ func (s PostgreConnect) PingDBConnection(ctx context.Context) error {
 	return err
 
 }
+
+// GetStatistic - возвращает количество ссылок и пользователей
+func (s PostgreConnect) GetStatistic() (urls int, users int) {
+	tx, err := s.DBConnect.BeginTx(context.Background(), nil)
+	if err != nil {
+		log.Print(err)
+		return 0, 0
+	}
+	defer tx.Rollback()
+
+	err = tx.QueryRow("select count(originalURL) from urls;").Scan(&urls)
+	if err != nil {
+		log.Print(err)
+		return 0, 0
+	}
+
+	err = tx.QueryRow("select count(user_id) from users;").Scan(&users)
+	if err != nil {
+		log.Print(err)
+		return 0, 0
+	}
+
+	tx.Commit()
+
+	return
+}
