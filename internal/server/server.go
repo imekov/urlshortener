@@ -85,18 +85,18 @@ func GetServer(dbConnection *sql.DB) (internal.Config, *chi.Mux) {
 
 		r.Route("/user/urls", func(r chi.Router) {
 			r.Get("/", h.GetAllShorterURLsHandler)
-			r.Delete("/", h.DeleteURLS)
+			r.Delete("/", h.DeleteBatchURLS)
 		})
 
 		r.Group(func(r chi.Router) {
 			r.Use(ipchecker.CheckIP)
-			r.Get("/internal/stats", h.GetStats)
+			r.Get("/internal/stats", h.GetStatistics)
 		})
 
 	})
 
 	r.Route("/ping", func(r chi.Router) {
-		r.Get("/", h.PingDBConnection)
+		r.Get("/", h.PingConnection)
 	})
 
 	return cfg, r

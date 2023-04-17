@@ -202,7 +202,7 @@ func TestHandler_MainHandler(t *testing.T) {
 
 			h.HandleFunc("/{id}", d.MainHandler)
 			h.HandleFunc("/api/user/urls", d.GetAllShorterURLsHandler)
-			h.HandleFunc("/api/user/urls", d.DeleteURLS)
+			h.HandleFunc("/api/user/urls", d.DeleteBatchURLS)
 
 			requestGet := httptest.NewRequest(http.MethodGet, shortURL, nil)
 

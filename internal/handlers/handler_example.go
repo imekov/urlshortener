@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	pb "github.com/vladimirimekov/url-shortener/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"io"
 	"math/rand"
 	"net/http"
@@ -34,6 +36,7 @@ type Handler struct {
 	LengthOfShortname int
 	Host              string
 	UserKey           interface{}
+	pb.UnimplementedUrlShortenerServer
 }
 
 // GetData содержит структуру для получения ссылок в формате json.
@@ -423,8 +426,8 @@ func (h Handler) GetAllShorterURLsHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// DeleteURLS выполняет асинхронное удаление ссылок.
-func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
+// DeleteBatchURLS выполняет асинхронное удаление ссылок.
+func (h Handler) DeleteBatchURLS(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
@@ -477,8 +480,8 @@ func (h Handler) DeleteURLS(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// PingDBConnection проверяет соединение с базой данных.
-func (h Handler) PingDBConnection(w http.ResponseWriter, r *http.Request) {
+// PingConnection проверяет соединение с базой данных.
+func (h Handler) PingConnection(w http.ResponseWriter, r *http.Request) {
 	if err := h.Storage.PingDBConnection(r.Context()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -486,8 +489,8 @@ func (h Handler) PingDBConnection(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// GetStats возвращает количество сокращённых URL в сервисе и количество пользователей в сервисе.
-func (h Handler) GetStats(w http.ResponseWriter, r *http.Request) {
+// GetStatistics возвращает количество сокращённых URL в сервисе и количество пользователей в сервисе.
+func (h Handler) GetStatistics(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 	defer cancel()
@@ -509,4 +512,32 @@ func (h Handler) GetStats(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func (h Handler) CreateShortLink(ctx context.Context, request *pb.CreateShortLinkRequest) (*pb.CreateShortLinkResponse, error) {
+	return nil, nil
+}
+
+func (h Handler) GetOriginalLink(ctx context.Context, request *pb.GetOriginalLinkRequest) (*pb.GetOriginalLinkResponse, error) {
+	return nil, nil
+}
+
+func (h Handler) CreateLinksInBatches(ctx context.Context, request *pb.CreateLinksInBatchesRequest) (*pb.CreateLinksInBatchesResponse, error) {
+	return nil, nil
+}
+
+func (h Handler) GetAllShorterURLs(ctx context.Context, request *pb.GetAllShorterURLsRequest) (*pb.GetAllShorterURLsResponse, error) {
+	return nil, nil
+}
+
+func (h Handler) DeleteURLS(ctx context.Context, request *pb.DeleteURLSRequest) (*emptypb.Empty, error) {
+	return nil, nil
+}
+
+func (h Handler) PingDBConnection(ctx context.Context, _ *emptypb.Empty) (*pb.PingDBConnectionResponse, error) {
+	return nil, nil
+}
+
+func (h Handler) GetStats(ctx context.Context, _ *emptypb.Empty) (*pb.GetStatsResponse, error) {
+	return nil, nil
 }
