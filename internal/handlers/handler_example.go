@@ -492,10 +492,6 @@ func (h Handler) PingConnection(w http.ResponseWriter, r *http.Request) {
 // GetStatistics возвращает количество сокращённых URL в сервисе и количество пользователей в сервисе.
 func (h Handler) GetStatistics(w http.ResponseWriter, r *http.Request) {
 
-	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
-	defer cancel()
-	r = r.WithContext(ctx)
-
 	urls, users := h.Storage.GetStatistic()
 	result := Statistic{Urls: urls, Users: users}
 
@@ -514,30 +510,37 @@ func (h Handler) GetStatistics(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// CreateShortLink создает короткую ссылку для grpc.
 func (h Handler) CreateShortLink(ctx context.Context, request *pb.CreateShortLinkRequest) (*pb.CreateShortLinkResponse, error) {
 	return nil, nil
 }
 
+// GetOriginalLink возвращает короткую ссылку для grpc .
 func (h Handler) GetOriginalLink(ctx context.Context, request *pb.GetOriginalLinkRequest) (*pb.GetOriginalLinkResponse, error) {
 	return nil, nil
 }
 
+// CreateLinksInBatches создает батч ссылок.
 func (h Handler) CreateLinksInBatches(ctx context.Context, request *pb.CreateLinksInBatchesRequest) (*pb.CreateLinksInBatchesResponse, error) {
 	return nil, nil
 }
 
+// GetAllShorterURLs возвращает все ссылки пользователя.
 func (h Handler) GetAllShorterURLs(ctx context.Context, request *pb.GetAllShorterURLsRequest) (*pb.GetAllShorterURLsResponse, error) {
 	return nil, nil
 }
 
+// DeleteURLS удаляет.
 func (h Handler) DeleteURLS(ctx context.Context, request *pb.DeleteURLSRequest) (*emptypb.Empty, error) {
 	return nil, nil
 }
 
+// PingDBConnection пингует.
 func (h Handler) PingDBConnection(ctx context.Context, _ *emptypb.Empty) (*pb.PingDBConnectionResponse, error) {
 	return nil, nil
 }
 
+// GetStats возвращает стату.
 func (h Handler) GetStats(ctx context.Context, _ *emptypb.Empty) (*pb.GetStatsResponse, error) {
 	return nil, nil
 }

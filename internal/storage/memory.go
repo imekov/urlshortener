@@ -64,6 +64,7 @@ func (s MemoryWork) PingDBConnection(context.Context) error {
 	return err
 }
 
+// GetStatistic возвращает данные статистики
 func (s MemoryWork) GetStatistic() (urls int, users int) {
 	for _, v := range s.UserData {
 		urls += len(v)
