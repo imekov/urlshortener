@@ -512,35 +512,130 @@ func (h Handler) GetStatistics(w http.ResponseWriter, r *http.Request) {
 
 // CreateShortLink создает короткую ссылку для grpc.
 func (h Handler) CreateShortLink(ctx context.Context, request *pb.CreateShortLinkRequest) (*pb.CreateShortLinkResponse, error) {
-	return nil, nil
+	var response pb.CreateShortLinkResponse
+
+	shortname := h.GetShortname(ctx)
+	resultData := map[string]map[string]string{request.UserID: {shortname: request.OriginalURL}}
+
+	if err := h.Storage.SaveData(ctx, resultData); err != nil {
+		switch e := err.(type) {
+		case *pq.Error:
+			if pgerrcode.IsIntegrityConstraintViolation(string(e.Code)) {
+				savedData := h.Storage.ReadData(ctx)
+
+				for _, value := range savedData {
+					for short, original := range value {
+						if original == request.OriginalURL {
+							response.ShortURL = short
+							break
+						}
+					}
+				}
+
+				return &response, nil
+			}
+		default:
+			return nil, err
+		}
+	}
+
+	response.ShortURL = h.Host + "/" + shortname
+
+	return &response, nil
 }
 
 // GetOriginalLink возвращает короткую ссылку для grpc .
 func (h Handler) GetOriginalLink(ctx context.Context, request *pb.GetOriginalLinkRequest) (*pb.GetOriginalLinkResponse, error) {
-	return nil, nil
+	var response pb.GetOriginalLinkResponse
+
+	if originalURL, isDelete := h.Storage.GetURLByShortname(ctx, request.ShortURL); isDelete {
+		return nil, errors.New("this link has been removed")
+	} else if originalURL == "" {
+		return nil, errors.New("URL not found")
+	} else {
+		response.OriginalURL = originalURL
+	}
+
+	return &response, nil
 }
 
 // CreateLinksInBatches создает батч ссылок.
 func (h Handler) CreateLinksInBatches(ctx context.Context, request *pb.CreateLinksInBatchesRequest) (*pb.CreateLinksInBatchesResponse, error) {
-	return nil, nil
+
+	var response pb.CreateLinksInBatchesResponse
+
+	dataToSave := make(map[string]map[string]string)
+	dataToSave[request.UserID] = map[string]string{}
+
+	for _, value := range request.OriginalURLs {
+		shortname := h.GetShortname(ctx)
+		dataToSave[request.UserID][shortname] = value.OriginalURL
+		response.ShortURLs = append(response.ShortURLs, &pb.BatchResponse{ShortURL: h.Host + "/" + shortname, CorrelationID: value.CorrelationID})
+	}
+
+	if err := h.Storage.SaveData(ctx, dataToSave); err != nil {
+		return nil, err
+	}
+
+	return &response, nil
 }
 
 // GetAllShorterURLs возвращает все ссылки пользователя.
 func (h Handler) GetAllShorterURLs(ctx context.Context, request *pb.GetAllShorterURLsRequest) (*pb.GetAllShorterURLsResponse, error) {
-	return nil, nil
+	var response pb.GetAllShorterURLsResponse
+
+	savedData := h.Storage.ReadData(ctx)
+	userData := savedData[request.UserID]
+
+	if len(userData) == 0 {
+		return nil, errors.New("there are no shortened links")
+	}
+
+	for key, value := range userData {
+		response.ShortURLs = append(response.ShortURLs, &pb.AllShorterURLsResponse{ShortURL: h.Host + "/" + key, OriginalURL: value})
+	}
+
+	return &response, nil
 }
 
 // DeleteURLS удаляет.
 func (h Handler) DeleteURLS(ctx context.Context, request *pb.DeleteURLSRequest) (*emptypb.Empty, error) {
-	return nil, nil
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		for {
+			select {
+			case <-ctx.Done():
+				return errors.New("context canceled")
+			default:
+				h.Storage.DeleteData(request.ShortURLs, request.UserID)
+				return nil
+			}
+		}
+	})
+
+	if err := g.Wait(); err != nil {
+		return &emptypb.Empty{}, err
+	}
+
+	return &emptypb.Empty{}, nil
 }
 
 // PingDBConnection пингует.
 func (h Handler) PingDBConnection(ctx context.Context, _ *emptypb.Empty) (*pb.PingDBConnectionResponse, error) {
-	return nil, nil
+	if err := h.Storage.PingDBConnection(ctx); err != nil {
+		return nil, err
+	}
+
+	return &pb.PingDBConnectionResponse{Ok: true}, nil
 }
 
 // GetStats возвращает стату.
-func (h Handler) GetStats(ctx context.Context, _ *emptypb.Empty) (*pb.GetStatsResponse, error) {
-	return nil, nil
+func (h Handler) GetStats(_ context.Context, _ *emptypb.Empty) (*pb.GetStatsResponse, error) {
+
+	urls, users := h.Storage.GetStatistic()
+	result := &pb.GetStatsResponse{Urls: int64(urls), Users: int64(users)}
+
+	return result, nil
 }

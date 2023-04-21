@@ -6,6 +6,7 @@ option go_package = "urlshortener/proto";
 
 message CreateShortLinkRequest {
   string originalURL = 1;
+  string userID = 2;
 }
 
 message CreateShortLinkResponse {
@@ -20,24 +21,41 @@ message GetOriginalLinkResponse {
   string originalURL = 1;
 }
 
+message BatchRequest  {
+  string originalURL = 1;
+  string correlationID = 2;
+}
+
 message CreateLinksInBatchesRequest {
-  repeated string originalURLs = 1;
+  repeated BatchRequest originalURLs = 1;
+  string userID = 2;
+}
+
+message BatchResponse {
+  string shortURL = 1;
+  string correlationID = 2;
 }
 
 message CreateLinksInBatchesResponse {
-  repeated string shortURLs = 1;
+  repeated BatchResponse shortURLs = 1;
 }
 
 message GetAllShorterURLsRequest {
   string userID = 1;
 }
 
+message AllShorterURLsResponse {
+  string shortURL = 1;
+  string OriginalURL = 2;
+}
+
 message GetAllShorterURLsResponse {
-  repeated string shortURLs = 1;
+  repeated AllShorterURLsResponse shortURLs = 1;
 }
 
 message DeleteURLSRequest {
   repeated string shortURLs = 1;
+  string userID = 2;
 }
 
 message PingDBConnectionResponse {

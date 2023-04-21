@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/vladimirimekov/url-shortener/internal/handlers"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,6 +20,10 @@ import (
 	"github.com/vladimirimekov/url-shortener/internal/server"
 )
 
+type userIDtype string
+
+const userKey userIDtype = "userid"
+
 var (
 	buildVersion string = "N/A"
 	buildDate    string = "N/A"
@@ -29,11 +35,27 @@ func main() {
 	var dbConnection *sql.DB
 	defer dbConnection.Close()
 
+	cfg, router := server.GetServer(dbConnection)
+
 	go func() {
 		http.ListenAndServe("127.0.0.1:9999", nil)
 	}()
 
-	cfg, router := server.GetServer(dbConnection)
+	go func() {
+
+		h := handlers.Handler{
+			LengthOfShortname: cfg.ShortnameLength,
+			Host:              cfg.BaseURL,
+			UserKey:           userKey,
+		}
+
+		listen, err := net.Listen("tcp", ":3200")
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		log.Fatal(server.NewGRPCServer(h).Serve(listen))
+	}()
 
 	if cfg.EnableHTTPS {
 		manager := &autocert.Manager{

@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v4.22.3
-// source: proto/urlshortener.proto
+// source: urlshortener.proto
 
 package proto
 
@@ -24,9 +24,9 @@ const (
 	UrlShortener_GetOriginalLink_FullMethodName      = "/shortener.UrlShortener/GetOriginalLink"
 	UrlShortener_CreateLinksInBatches_FullMethodName = "/shortener.UrlShortener/CreateLinksInBatches"
 	UrlShortener_GetAllShorterURLs_FullMethodName    = "/shortener.UrlShortener/GetAllShorterURLs"
-	UrlShortener_DeleteURLS_FullMethodName           = "/shortener.UrlShortener/DeleteBatchURLS"
-	UrlShortener_PingDBConnection_FullMethodName     = "/shortener.UrlShortener/PingConnection"
-	UrlShortener_GetStats_FullMethodName             = "/shortener.UrlShortener/GetStatistics"
+	UrlShortener_DeleteURLS_FullMethodName           = "/shortener.UrlShortener/DeleteURLS"
+	UrlShortener_PingDBConnection_FullMethodName     = "/shortener.UrlShortener/PingDBConnection"
+	UrlShortener_GetStats_FullMethodName             = "/shortener.UrlShortener/GetStats"
 )
 
 // UrlShortenerClient is the client API for UrlShortener service.
@@ -144,13 +144,13 @@ func (UnimplementedUrlShortenerServer) GetAllShorterURLs(context.Context, *GetAl
 	return nil, status.Errorf(codes.Unimplemented, "method GetAllShorterURLs not implemented")
 }
 func (UnimplementedUrlShortenerServer) DeleteURLS(context.Context, *DeleteURLSRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteBatchURLS not implemented")
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteURLS not implemented")
 }
 func (UnimplementedUrlShortenerServer) PingDBConnection(context.Context, *emptypb.Empty) (*PingDBConnectionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PingConnection not implemented")
+	return nil, status.Errorf(codes.Unimplemented, "method PingDBConnection not implemented")
 }
 func (UnimplementedUrlShortenerServer) GetStats(context.Context, *emptypb.Empty) (*GetStatsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetStatistics not implemented")
+	return nil, status.Errorf(codes.Unimplemented, "method GetStats not implemented")
 }
 func (UnimplementedUrlShortenerServer) mustEmbedUnimplementedUrlShortenerServer() {}
 
@@ -315,18 +315,18 @@ var UrlShortener_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UrlShortener_GetAllShorterURLs_Handler,
 		},
 		{
-			MethodName: "DeleteBatchURLS",
+			MethodName: "DeleteURLS",
 			Handler:    _UrlShortener_DeleteURLS_Handler,
 		},
 		{
-			MethodName: "PingConnection",
+			MethodName: "PingDBConnection",
 			Handler:    _UrlShortener_PingDBConnection_Handler,
 		},
 		{
-			MethodName: "GetStatistics",
+			MethodName: "GetStats",
 			Handler:    _UrlShortener_GetStats_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/urlshortener.proto",
+	Metadata: "urlshortener.proto",
 }
