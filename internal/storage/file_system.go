@@ -124,3 +124,13 @@ func (s FileSystemConnect) PingDBConnection(ctx context.Context) error {
 	err := errors.New("db is not working, current type - work with files")
 	return err
 }
+
+// GetStatistic - возвращает количество ссылок и пользователей
+func (s FileSystemConnect) GetStatistic() (urls int, users int) {
+	data := s.ReadData(context.Background())
+	for _, v := range data {
+		urls += len(v)
+	}
+
+	return urls, len(data)
+}

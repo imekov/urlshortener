@@ -1,0 +1,78 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+package shortener;
+
+option go_package = "urlshortener/proto";
+
+message CreateShortLinkRequest {
+  string originalURL = 1;
+  string userID = 2;
+}
+
+message CreateShortLinkResponse {
+  string shortURL = 1;
+}
+
+message GetOriginalLinkRequest {
+  string shortURL = 1;
+}
+
+message GetOriginalLinkResponse {
+  string originalURL = 1;
+}
+
+message BatchRequest  {
+  string originalURL = 1;
+  string correlationID = 2;
+}
+
+message CreateLinksInBatchesRequest {
+  repeated BatchRequest originalURLs = 1;
+  string userID = 2;
+}
+
+message BatchResponse {
+  string shortURL = 1;
+  string correlationID = 2;
+}
+
+message CreateLinksInBatchesResponse {
+  repeated BatchResponse shortURLs = 1;
+}
+
+message GetAllShorterURLsRequest {
+  string userID = 1;
+}
+
+message AllShorterURLsResponse {
+  string shortURL = 1;
+  string OriginalURL = 2;
+}
+
+message GetAllShorterURLsResponse {
+  repeated AllShorterURLsResponse shortURLs = 1;
+}
+
+message DeleteURLSRequest {
+  repeated string shortURLs = 1;
+  string userID = 2;
+}
+
+message PingDBConnectionResponse {
+  bool ok = 1;
+}
+
+message GetStatsResponse {
+  int64 urls = 1;
+  int64 users = 2;
+}
+
+service UrlShortener {
+  rpc CreateShortLink(CreateShortLinkRequest) returns (CreateShortLinkResponse);
+  rpc GetOriginalLink(GetOriginalLinkRequest) returns (GetOriginalLinkResponse);
+  rpc CreateLinksInBatches(CreateLinksInBatchesRequest) returns (CreateLinksInBatchesResponse);
+  rpc GetAllShorterURLs(GetAllShorterURLsRequest) returns (GetAllShorterURLsResponse);
+  rpc DeleteURLS(DeleteURLSRequest) returns (google.protobuf.Empty);
+  rpc PingDBConnection(google.protobuf.Empty) returns (PingDBConnectionResponse);
+  rpc GetStats(google.protobuf.Empty) returns (GetStatsResponse);
+}
